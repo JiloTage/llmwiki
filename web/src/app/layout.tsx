@@ -27,7 +27,7 @@ const themeScript = `
       var storageKey = 'theme';
       var stored = localStorage.getItem(storageKey);
       var isValid = stored === 'light' || stored === 'dark';
-      var theme = isValid ? stored : 'dark';
+      var theme = isValid ? stored : 'light';
 
       // Persist a sane default so a refresh doesn't fall back to light/system
       if (!isValid) {
@@ -38,7 +38,7 @@ const themeScript = `
       document.documentElement.classList.add(theme);
       document.documentElement.style.colorScheme = theme;
     } catch (e) {
-      document.documentElement.classList.add('dark');
+      document.documentElement.classList.add('light');
       document.documentElement.style.colorScheme = 'dark';
     }
   })();
@@ -62,7 +62,7 @@ export default function RootLayout({
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
           enableSystem={false}
           disableTransitionOnChange
           storageKey="theme"
