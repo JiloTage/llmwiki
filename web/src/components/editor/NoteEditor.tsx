@@ -12,7 +12,7 @@ import { Markdown } from 'tiptap-markdown'
 import { format, parse, isValid } from 'date-fns'
 import {
   X, CalendarIcon, Tag, Plus, Hash, Type, CheckSquare, Square,
-  List, LinkIcon, ExternalLink,
+  List, LinkIcon, ExternalLink, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { apiFetch } from '@/lib/api'
@@ -41,6 +41,27 @@ function sanitizeUrl(url: string): string | undefined {
 function getMarkdown(editor: Editor): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (editor.storage as any).markdown.getMarkdown()
+}
+
+const FRONTMATTER_RE = /^\s*---[ \t]*\n([\s\S]*?\n)---[ \t]*\n/
+
+function stripFrontmatter(content: string): { body: string; meta: Record<string, string> } {
+  const match = content.match(FRONTMATTER_RE)
+  if (!match) return { body: content, meta: {} }
+
+  const body = content.slice(match[0].length)
+  const meta: Record<string, string> = {}
+  for (const line of match[1].split('\n')) {
+    const idx = line.indexOf(':')
+    if (idx > 0) {
+      const key = line.slice(0, idx).trim()
+      const val = line.slice(idx + 1).trim()
+      if (key && val && !key.startsWith(' ') && !key.startsWith('-')) {
+        meta[key] = val
+      }
+    }
+  }
+  return { body, meta }
 }
 
 function defaultValue(type: PropertyType): TypedProperty {
@@ -320,6 +341,8 @@ interface NoteEditorProps {
   initialDate?: string | null
   initialProperties?: Record<string, unknown>
   onTitleChange?: (title: string) => void
+  backLabel?: string
+  onBack?: () => void
 }
 
 async function getAccessToken(): Promise<string | null> {
@@ -336,6 +359,8 @@ export function NoteEditor({
   initialDate,
   initialProperties,
   onTitleChange,
+  backLabel,
+  onBack,
 }: NoteEditorProps) {
   const [title, setTitle] = React.useState(initialTitle ?? '')
   const [date, setDate] = React.useState<string>(initialDate ?? '')
@@ -350,6 +375,7 @@ export function NoteEditor({
   const [wordCount, setWordCount] = React.useState(0)
   const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const latestContentRef = React.useRef<string>('')
+  const frontmatterRef = React.useRef<string>('')
   const latestTitleRef = React.useRef<string>(initialTitle ?? '')
   const latestDateRef = React.useRef<string>(initialDate ?? '')
   const latestTagsRef = React.useRef<string[]>(initialTags ?? [])
@@ -425,8 +451,16 @@ export function NoteEditor({
         )
 
         if (cancelled) return
-        latestContentRef.current = content ?? ''
-        editor?.commands.setContent(content ?? '')
+        const raw = content ?? ''
+        const { body, meta } = stripFrontmatter(raw)
+        const fmMatch = raw.match(FRONTMATTER_RE)
+        frontmatterRef.current = fmMatch ? fmMatch[0] : ''
+        latestContentRef.current = body
+        editor?.commands.setContent(body)
+
+        if (meta.date && !date) {
+          setDate(meta.date)
+        }
       } catch (err) {
         console.error('[NoteEditor] Failed to load content:', err)
         if (initialContent != null && !cancelled) {
@@ -466,7 +500,7 @@ export function NoteEditor({
       const promises: Promise<unknown>[] = [
         apiFetch(`/v1/documents/${documentId}/content`, token, {
           method: 'PUT',
-          body: JSON.stringify({ content: latestContentRef.current }),
+          body: JSON.stringify({ content: frontmatterRef.current + latestContentRef.current }),
         }),
       ]
 
@@ -667,24 +701,17 @@ export function NoteEditor({
     scheduleSave()
   }
 
-  if (!loaded) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="size-5 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
-      </div>
-    )
-  }
-
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <NoteToolbar
         editor={editor}
-        saveStatus={saveStatus}
-        wordCount={wordCount}
+        backLabel={backLabel ?? 'Back'}
+        noteTitle={title}
+        onBack={onBack ?? (() => {})}
       />
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-8 py-8">
+      <div className="flex-1 overflow-y-auto bg-background px-6">
+        <div className="max-w-4xl mx-auto px-20 py-12 bg-card rounded-2xl border border-border/40 shadow-sm mb-6 min-h-[calc(100%-1.5rem)]">
           <input
             type="text"
             value={title}
@@ -729,37 +756,14 @@ export function NoteEditor({
               )}
             </div>
 
-            <div className="flex items-start min-h-8">
-              <div className="flex items-center gap-2 w-24 shrink-0 h-8">
-                <Tag className="size-3.5 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">tags</span>
-              </div>
-              <div className="flex items-center gap-1.5 flex-wrap flex-1 h-8 px-1.5">
-                {tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-1 text-sm bg-muted text-muted-foreground rounded-md px-2 py-0.5"
-                  >
-                    {tag}
-                    <button
-                      onClick={() => handleRemoveTag(tag)}
-                      className="hover:text-foreground cursor-pointer"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </span>
-                ))}
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={handleTagKeyDown}
-                  onBlur={handleAddTag}
-                  placeholder={tags.length === 0 ? 'Add tags...' : '+'}
-                  className="text-sm bg-transparent border-none outline-none text-muted-foreground placeholder:text-muted-foreground/30 w-24"
-                />
-              </div>
-            </div>
+            <TagsRow
+              tags={tags}
+              tagInput={tagInput}
+              onTagInputChange={setTagInput}
+              onTagKeyDown={handleTagKeyDown}
+              onAddTag={handleAddTag}
+              onRemoveTag={handleRemoveTag}
+            />
 
             {Object.entries(properties).map(([key, prop]) => (
               <div key={key} className="flex items-center min-h-8 group/prop">
@@ -827,6 +831,82 @@ export function NoteEditor({
 
           <EditorContent editor={editor} />
         </div>
+      </div>
+
+      <div className="shrink-0 flex items-center justify-end px-5 py-1.5 bg-background">
+        <span className="text-[10px] text-muted-foreground mr-3">
+          {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : ''}
+        </span>
+        <span className="text-[10px] text-muted-foreground tabular-nums">
+          {wordCount} {wordCount === 1 ? 'word' : 'words'}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function TagsRow({
+  tags,
+  tagInput,
+  onTagInputChange,
+  onTagKeyDown,
+  onAddTag,
+  onRemoveTag,
+}: {
+  tags: string[]
+  tagInput: string
+  onTagInputChange: (v: string) => void
+  onTagKeyDown: (e: React.KeyboardEvent) => void
+  onAddTag: () => void
+  onRemoveTag: (tag: string) => void
+}) {
+  const [expanded, setExpanded] = React.useState(false)
+
+  return (
+    <div className="flex items-start min-h-8">
+      <div className="flex items-center gap-2 w-24 shrink-0 h-8">
+        <Tag className="size-3.5 text-muted-foreground" />
+        <span className="text-sm text-muted-foreground">tags</span>
+      </div>
+      <div className="flex-1 min-w-0 relative">
+        <div
+          className={cn(
+            'flex items-center gap-1.5 px-1.5',
+            expanded ? 'flex-wrap min-h-8 py-1' : 'overflow-x-auto no-scrollbar h-8',
+          )}
+        >
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 text-sm bg-muted text-muted-foreground rounded-md px-2 py-0.5 shrink-0"
+            >
+              {tag}
+              <button
+                onClick={() => onRemoveTag(tag)}
+                className="hover:text-foreground cursor-pointer"
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          ))}
+          <input
+            type="text"
+            value={tagInput}
+            onChange={(e) => onTagInputChange(e.target.value)}
+            onKeyDown={onTagKeyDown}
+            onBlur={onAddTag}
+            placeholder={tags.length === 0 ? 'Add tags...' : '+'}
+            className="text-sm bg-transparent border-none outline-none text-muted-foreground placeholder:text-muted-foreground/30 w-16 shrink-0"
+          />
+        </div>
+        {tags.length > 3 && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="absolute right-0 top-1.5 p-1 text-muted-foreground hover:text-foreground cursor-pointer"
+          >
+            {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+          </button>
+        )}
       </div>
     </div>
   )

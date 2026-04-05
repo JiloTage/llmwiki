@@ -39,7 +39,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center p-8">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Sign in to Supavault</h1>
+          <h1 className="text-2xl font-bold">Sign in to LLM Wiki</h1>
         </div>
 
         <button

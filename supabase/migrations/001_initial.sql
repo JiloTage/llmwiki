@@ -39,6 +39,7 @@ CREATE TABLE documents (
     path TEXT DEFAULT '/' NOT NULL,
     file_type TEXT NOT NULL,
     file_size BIGINT DEFAULT 0 NOT NULL,
+    document_number INTEGER,
     status document_status DEFAULT 'pending' NOT NULL,
     page_count INTEGER,
     content TEXT,
@@ -190,3 +191,24 @@ CREATE TRIGGER set_documents_updated_at
     BEFORE UPDATE ON documents
     FOR EACH ROW
     EXECUTE FUNCTION set_updated_at();
+
+CREATE OR REPLACE FUNCTION set_document_number()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    PERFORM pg_advisory_xact_lock(hashtext(NEW.knowledge_base_id::text));
+    NEW.document_number := COALESCE(
+        (SELECT MAX(document_number) FROM documents WHERE knowledge_base_id = NEW.knowledge_base_id),
+        0
+    ) + 1;
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER set_document_number
+    BEFORE INSERT ON documents
+    FOR EACH ROW
+    EXECUTE FUNCTION set_document_number();
+
+CREATE UNIQUE INDEX idx_documents_kb_number ON documents(knowledge_base_id, document_number);

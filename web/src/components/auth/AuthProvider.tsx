@@ -14,15 +14,18 @@ export function AuthProvider({ userId, email, children }: AuthProviderProps) {
   const setUser = useUserStore((s) => s.setUser)
   const setAccessToken = useUserStore((s) => s.setAccessToken)
   const fetchKBs = useKBStore((s) => s.fetchKBs)
+  const initialized = React.useRef(false)
 
   React.useEffect(() => {
+    if (initialized.current) return
+    initialized.current = true
+
     const supabase = createClient()
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setUser({ id: userId, email })
-        setAccessToken(session.access_token)
-        fetchKBs()
-      }
+      if (!session) return
+      setUser({ id: userId, email })
+      setAccessToken(session.access_token)
+      fetchKBs()
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {

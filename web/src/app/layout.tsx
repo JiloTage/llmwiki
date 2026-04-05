@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Supavault",
-  description: "A knowledge vault for Claude",
+  title: "LLM Wiki",
+  description: "A personal wiki built and maintained by your LLM.",
 };
 
 // Script to prevent theme flash - runs before React hydrates

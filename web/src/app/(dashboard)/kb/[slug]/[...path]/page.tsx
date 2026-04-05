@@ -1,13 +1,14 @@
 'use client'
 
 import * as React from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useKBStore } from '@/stores'
 import { useKBDocuments } from '@/hooks/useKBDocuments'
 import { NoteEditor } from '@/components/editor/NoteEditor'
-import { Loader2, FileText } from 'lucide-react'
+import { Loader2, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function FilePage() {
+  const router = useRouter()
   const params = useParams<{ slug: string; path: string[] }>()
   const knowledgeBases = useKBStore((s) => s.knowledgeBases)
   const kbLoading = useKBStore((s) => s.loading)
@@ -19,50 +20,74 @@ export default function FilePage() {
 
   const { documents, loading: docsLoading } = useKBDocuments(kb?.id ?? '')
 
-  const pathSegments = params.path ?? []
-  const filename = pathSegments[pathSegments.length - 1] ?? ''
-  const folderPath = pathSegments.length > 1
-    ? '/' + pathSegments.slice(0, -1).join('/') + '/'
-    : '/'
+  const docNumber = parseInt(params.path?.[0] ?? '', 10)
 
   const document = React.useMemo(() => {
-    if (!documents.length || !filename) return null
-    return documents.find((d) => {
-      const docFilename = d.title || d.filename
-      const docPath = d.path ?? '/'
-      return docFilename === decodeURIComponent(filename) && docPath === folderPath
-    }) ?? documents.find((d) => {
-      const docFilename = d.title || d.filename
-      return docFilename === decodeURIComponent(filename)
-    }) ?? null
-  }, [documents, filename, folderPath])
+    if (!documents.length || isNaN(docNumber)) return null
+    return documents.find((d) => d.document_number === docNumber) ?? null
+  }, [documents, docNumber])
 
   if (kbLoading || (kb && docsLoading)) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+      <div className="h-full flex flex-col bg-background">
+        <div className="flex items-center gap-1.5 px-5 py-4 shrink-0">
+          <button
+            onClick={() => router.push(`/kb/${params.slug}`)}
+            className="p-1 rounded transition-colors hover:bg-accent cursor-pointer text-foreground"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <button disabled className="p-1 rounded text-muted-foreground/30 cursor-default">
+            <ChevronRight className="size-4" />
+          </button>
+          <nav className="flex items-center gap-1 text-sm">
+            <button
+              onClick={() => router.push('/kb')}
+              className="px-1.5 py-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer truncate"
+            >
+              {kb?.name ?? params.slug}
+            </button>
+            <span className="text-muted-foreground/40">/</span>
+            <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+          </nav>
+        </div>
+        <div className="flex-1 px-6">
+          <div className="max-w-4xl mx-auto bg-card rounded-2xl border border-border/40 shadow-sm min-h-full px-20 py-12">
+            <div className="h-8 w-80 bg-muted rounded animate-pulse mb-6" />
+            <div className="h-4 w-48 bg-muted rounded animate-pulse mb-4" />
+            <div className="h-4 w-64 bg-muted rounded animate-pulse mb-8" />
+            <div className="space-y-3">
+              <div className="h-4 w-full bg-muted/60 rounded animate-pulse" />
+              <div className="h-4 w-5/6 bg-muted/60 rounded animate-pulse" />
+              <div className="h-4 w-4/6 bg-muted/60 rounded animate-pulse" />
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
 
   if (!kb) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-2">
+      <div className="flex flex-col items-center justify-center h-full gap-2 bg-background">
         <h1 className="text-lg font-medium">Knowledge base not found</h1>
-        <p className="text-sm text-muted-foreground">
-          The knowledge base &ldquo;{params.slug}&rdquo; does not exist.
-        </p>
       </div>
     )
   }
 
   if (!document) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-2">
+      <div className="flex flex-col items-center justify-center h-full gap-2 bg-background">
         <h1 className="text-lg font-medium">Document not found</h1>
         <p className="text-sm text-muted-foreground">
-          Could not find &ldquo;{decodeURIComponent(filename)}&rdquo; in this knowledge base.
+          Document #{docNumber} does not exist in this knowledge base.
         </p>
+        <button
+          onClick={() => router.push(`/kb/${params.slug}`)}
+          className="mt-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+        >
+          Back to {kb.name}
+        </button>
       </div>
     )
   }
@@ -71,31 +96,31 @@ export default function FilePage() {
 
   if (isNote) {
     return (
-      <div className="h-full">
-        <NoteEditor
-          documentId={document.id}
-          initialTitle={document.title ?? document.filename}
-          initialTags={document.tags}
-        />
-      </div>
+      <NoteEditor
+        documentId={document.id}
+        initialTitle={document.title ?? document.filename}
+        initialTags={document.tags}
+        backLabel={kb.name}
+        onBack={() => router.push(`/kb/${params.slug}`)}
+      />
     )
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
+    <div className="flex flex-col items-center justify-center h-full gap-4 p-8 bg-background">
       <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-muted">
         <FileText size={28} className="text-muted-foreground" />
       </div>
       <div className="text-center">
         <h1 className="text-lg font-medium">{document.title || document.filename}</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {document.file_type?.toUpperCase()} document
-          {document.page_count ? ` \u00B7 ${document.page_count} page${document.page_count > 1 ? 's' : ''}` : ''}
-        </p>
-        <p className="text-xs text-muted-foreground mt-2">
-          File viewer coming soon
-        </p>
+        <p className="text-xs text-muted-foreground mt-2">File viewer coming soon</p>
       </div>
+      <button
+        onClick={() => router.push(`/kb/${params.slug}`)}
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+      >
+        Back to {kb.name}
+      </button>
     </div>
   )
 }

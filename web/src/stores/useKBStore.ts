@@ -7,7 +7,7 @@ type KBState = {
   knowledgeBases: KnowledgeBase[]
   loading: boolean
   error: string | null
-  fetchKBs: () => Promise<void>
+  fetchKBs: () => Promise<KnowledgeBase[]>
   createKB: (name: string) => Promise<KnowledgeBase>
   deleteKB: (id: string) => Promise<void>
   renameKB: (id: string, name: string) => Promise<void>
@@ -21,7 +21,7 @@ function getToken(): string {
 
 export const useKBStore = create<KBState>((set, get) => ({
   knowledgeBases: [],
-  loading: false,
+  loading: true,
   error: null,
 
   fetchKBs: async () => {
@@ -30,8 +30,10 @@ export const useKBStore = create<KBState>((set, get) => ({
       const token = getToken()
       const data = await apiFetch<KnowledgeBase[]>('/v1/knowledge-bases', token)
       set({ knowledgeBases: data, loading: false })
+      return data
     } catch (err) {
       set({ error: (err as Error).message, loading: false })
+      return []
     }
   },
 

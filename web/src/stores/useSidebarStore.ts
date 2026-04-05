@@ -15,7 +15,7 @@ export const useSidebarStore = create<SidebarState>()(
       set: (v) => set({ expanded: v }),
     }),
     {
-      name: 'supavault:sidebar',
+      name: 'llmwiki:sidebar',
     },
   ),
 )

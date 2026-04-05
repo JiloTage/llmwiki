@@ -13,6 +13,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import { cn } from '@/lib/utils'
 import { joinPath } from '@/lib/utils/folders'
 import type { DocumentListItem } from '@/lib/types'
@@ -25,7 +32,7 @@ export type DragItem =
   | { type: 'folder'; folderName: string; folderPath: string }
   | { type: 'multi'; ids: string[]; currentPath: string }
 
-const DRAG_MIME = 'application/x-supavault-item'
+export const DRAG_MIME = 'application/x-llmwiki-item'
 
 type Props = {
   kbId: string
@@ -40,6 +47,7 @@ type Props = {
   onMoveDocument: (docId: string, targetPath: string) => void
   onCreateNote: () => void
   onCreateFolder: () => void
+  onUpload?: () => void
   sortField?: SortField
   sortDir?: SortDir
   onSortChange?: (field: SortField) => void
@@ -65,6 +73,7 @@ export function FolderDocumentList({
   onMoveDocument,
   onCreateNote,
   onCreateFolder,
+  onUpload,
   sortField = 'name',
   sortDir = 'asc',
   onSortChange,
@@ -102,7 +111,7 @@ export function FolderDocumentList({
         </div>
         <div className="flex gap-3">
           <button
-            onClick={onCreateFolder}
+            onClick={onUpload}
             className="flex flex-col items-center gap-2 px-6 py-4 rounded-lg border border-dashed border-border hover:border-foreground/20 hover:bg-muted/50 transition-colors cursor-pointer"
           >
             <Upload className="size-5 text-muted-foreground" />
@@ -320,54 +329,68 @@ function ItemRow({
   const doc = !isFolder ? item.doc : null
   const date = doc ? (doc.updated_at || doc.created_at) : null
 
+  const renameHandler = isFolder && onRenameFolder ? () => {
+    const newName = window.prompt('Rename folder', item.name)
+    if (newName && newName !== item.name) onRenameFolder(item.name, newName)
+  } : undefined
+
   return (
-    <li
-      draggable
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      onClick={handleClick}
-      className={cn(
-        'flex items-center h-9 px-2 cursor-pointer group transition-colors',
-        isDragOver
-          ? 'ring-1 ring-primary bg-primary/5'
-          : isSelected
-            ? 'bg-primary/5'
-            : hoverColor,
-      )}
-    >
-      <span className="flex-shrink-0 w-5 flex items-center justify-center mr-2">
-        {icon}
-      </span>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <li
+          draggable
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={handleClick}
+          className={cn(
+            'flex items-center h-9 px-2 cursor-pointer group transition-colors',
+            isDragOver
+              ? 'ring-1 ring-primary bg-primary/5'
+              : isSelected
+                ? 'bg-primary/5'
+                : hoverColor,
+          )}
+        >
+          <span className="flex-shrink-0 w-5 flex items-center justify-center mr-2">
+            {icon}
+          </span>
 
-      <span className="flex-1 min-w-0 text-[13px] text-foreground truncate">
-        {label}
-      </span>
+          <span className="flex-1 min-w-0 text-[13px] text-foreground truncate">
+            {label}
+          </span>
 
-      {isFolder && (
-        <ChevronRight className="size-3 text-muted-foreground/50 flex-shrink-0 mr-1" />
-      )}
+          {isFolder && (
+            <ChevronRight className="size-3 text-muted-foreground/50 flex-shrink-0 mr-1" />
+          )}
 
-      <span className="w-20 flex-shrink-0 text-[11px] text-muted-foreground">
-        {kindLabel}
-      </span>
+          <span className="w-20 flex-shrink-0 text-[11px] text-muted-foreground">
+            {kindLabel}
+          </span>
 
-      <span className="w-[100px] flex-shrink-0 text-right text-[11px] text-muted-foreground tabular-nums">
-        {date ? formatDate(date) : ''}
-      </span>
+          <span className="w-[100px] flex-shrink-0 text-right text-[11px] text-muted-foreground tabular-nums">
+            {date ? formatDate(date) : ''}
+          </span>
 
-      <div className="w-7 flex-shrink-0 flex items-center justify-center">
-        <RowMenu
-          item={item}
-          onDelete={onDelete}
-          onRename={isFolder && onRenameFolder ? () => {
-            const newName = window.prompt('Rename folder', item.name)
-            if (newName && newName !== item.name) onRenameFolder(item.name, newName)
-          } : undefined}
-        />
-      </div>
-    </li>
+          <div className="w-7 flex-shrink-0 flex items-center justify-center">
+            <RowMenu
+              item={item}
+              onDelete={onDelete}
+              onRename={renameHandler}
+            />
+          </div>
+        </li>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => onOpen(item)}>Open</ContextMenuItem>
+        {renameHandler && (
+          <ContextMenuItem onClick={renameHandler}>Rename</ContextMenuItem>
+        )}
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={onDelete} className="text-destructive">Delete</ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }
 

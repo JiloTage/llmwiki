@@ -18,7 +18,7 @@ export default function KBPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-full bg-background">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
       </div>
     )
@@ -26,7 +26,7 @@ export default function KBPage() {
 
   if (!kb) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-2">
+      <div className="flex flex-col items-center justify-center h-full gap-2 bg-background">
         <h1 className="text-lg font-medium">Knowledge base not found</h1>
         <p className="text-sm text-muted-foreground">
           The knowledge base &ldquo;{params.slug}&rdquo; does not exist or you don&apos;t have access.
@@ -35,5 +35,5 @@ export default function KBPage() {
     )
   }
 
-  return <KBDetail kbId={kb.id} kbSlug={kb.slug} />
+  return <KBDetail kbId={kb.id} kbSlug={kb.slug} kbName={kb.name} />
 }

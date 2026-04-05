@@ -1,7 +1,9 @@
+import re
 from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
+import yaml
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -9,6 +11,30 @@ from deps import get_scoped_db
 from scoped_db import ScopedDB
 
 router = APIRouter(tags=["documents"])
+
+_FRONTMATTER_RE = re.compile(r"\A---[ \t]*\n(.+?\n)---[ \t]*\n", re.DOTALL)
+
+
+def parse_frontmatter(content: str) -> tuple[dict, str]:
+    """Extract YAML frontmatter from content.
+
+    Returns (metadata_dict, body_without_frontmatter).
+    If no valid frontmatter is found, returns ({}, original_content).
+    """
+    m = _FRONTMATTER_RE.match(content)
+    if not m:
+        return {}, content
+
+    try:
+        meta = yaml.safe_load(m.group(1))
+    except yaml.YAMLError:
+        return {}, content
+
+    if not isinstance(meta, dict):
+        return {}, content
+
+    body = content[m.end():]
+    return meta, body
 
 
 class CreateNote(BaseModel):
@@ -39,6 +65,7 @@ class DocumentOut(BaseModel):
     status: str
     tags: list[str]
     version: int
+    document_number: int | None
     archived: bool
     created_at: datetime
     updated_at: datetime
@@ -59,7 +86,7 @@ async def list_documents(
     if path:
         rows = await db.fetch(
             "SELECT id, knowledge_base_id, user_id, filename, path, title, "
-            "file_type, status, tags, version, archived, created_at, updated_at "
+            "file_type, status, tags, version, document_number, archived, created_at, updated_at "
             "FROM documents WHERE knowledge_base_id = $1 AND archived = false AND path = $2 "
             "ORDER BY filename",
             kb_id,
@@ -68,7 +95,7 @@ async def list_documents(
     else:
         rows = await db.fetch(
             "SELECT id, knowledge_base_id, user_id, filename, path, title, "
-            "file_type, status, tags, version, archived, created_at, updated_at "
+            "file_type, status, tags, version, document_number, archived, created_at, updated_at "
             "FROM documents WHERE knowledge_base_id = $1 AND archived = false "
             "ORDER BY filename",
             kb_id,
@@ -86,17 +113,28 @@ async def create_note(
     if not kb:
         raise HTTPException(status_code=404, detail="Knowledge base not found")
 
+    meta, _ = parse_frontmatter(body.content)
+
+    title = body.filename
+    if isinstance(meta.get("title"), str) and meta["title"].strip():
+        title = meta["title"].strip()
+
+    tags: list[str] = []
+    if isinstance(meta.get("tags"), list):
+        tags = [str(t) for t in meta["tags"] if t is not None]
+
     row = await db.fetchrow(
         "INSERT INTO documents (knowledge_base_id, user_id, filename, path, title, "
         "file_type, status, content, tags) "
-        "VALUES ($1, auth.uid(), $2, $3, $4, 'md', 'ready', $5, '{}') "
+        "VALUES ($1, auth.uid(), $2, $3, $4, 'md', 'ready', $5, $6) "
         "RETURNING id, knowledge_base_id, user_id, filename, path, title, "
-        "file_type, status, tags, version, archived, created_at, updated_at",
+        "file_type, status, tags, version, document_number, archived, created_at, updated_at",
         kb_id,
         body.filename,
         body.path,
-        body.filename,
+        title,
         body.content,
+        tags,
     )
     return row
 
@@ -108,7 +146,7 @@ async def get_document(
 ):
     row = await db.fetchrow(
         "SELECT id, knowledge_base_id, user_id, filename, path, title, "
-        "file_type, status, tags, version, archived, created_at, updated_at "
+        "file_type, status, tags, version, document_number, archived, created_at, updated_at "
         "FROM documents WHERE id = $1",
         doc_id,
     )
@@ -186,12 +224,29 @@ async def update_document_metadata(
         f"UPDATE documents SET {', '.join(updates)} "
         f"WHERE id = ${idx} "
         f"RETURNING id, knowledge_base_id, user_id, filename, path, title, "
-        f"file_type, status, tags, version, archived, created_at, updated_at"
+        f"file_type, status, tags, version, document_number, archived, created_at, updated_at"
     )
     row = await db.fetchrow(sql, *params)
     if not row:
         raise HTTPException(status_code=404, detail="Document not found")
     return row
+
+
+class BulkDelete(BaseModel):
+    ids: list[UUID]
+
+
+@router.post("/v1/documents/bulk-delete", status_code=204)
+async def bulk_delete_documents(
+    body: BulkDelete,
+    db: Annotated[ScopedDB, Depends(get_scoped_db)],
+):
+    if not body.ids:
+        return
+    await db.execute(
+        "UPDATE documents SET archived = true, updated_at = now() WHERE id = ANY($1::uuid[])",
+        [str(i) for i in body.ids],
+    )
 
 
 @router.delete("/v1/documents/{doc_id}", status_code=204)

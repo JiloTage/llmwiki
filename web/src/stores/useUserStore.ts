@@ -28,7 +28,7 @@ export const useUserStore = create<UserState>()(
       signOut: () => set({ user: null, accessToken: null, authLoading: false }),
     }),
     {
-      name: 'supavault:user',
+      name: 'llmwiki:user',
       partialize: (state) => ({ accessToken: state.accessToken }),
     },
   ),

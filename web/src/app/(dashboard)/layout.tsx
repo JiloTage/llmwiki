@@ -5,8 +5,9 @@ import { AuthProvider } from '@/components/auth/AuthProvider'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
+  const user = session.user
 
   return (
     <AuthProvider userId={user.id} email={user.email!}>

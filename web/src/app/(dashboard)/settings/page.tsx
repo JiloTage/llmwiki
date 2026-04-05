@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils'
 
 const MCP_CONFIG = {
   mcpServers: {
-    supavault: {
-      url: 'https://api.supavault.dev/mcp',
+    llmwiki: {
+      url: 'https://api.llmwiki.app/mcp',
       headers: {
         Authorization: 'Bearer sk_...',
       },

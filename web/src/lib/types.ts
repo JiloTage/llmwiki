@@ -23,6 +23,7 @@ export interface Document {
   tags: string[]
   url: string | null
   version: number
+  document_number: number | null
   archived: boolean
   created_at: string
   updated_at: string

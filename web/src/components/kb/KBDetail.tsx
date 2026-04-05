@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { Loader2, Upload, Trash2, X, NotepadText, Folder, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Loader2, Upload, Trash2, X, NotepadText, Folder } from 'lucide-react'
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -22,28 +23,32 @@ import {
   rebasePath,
 } from '@/lib/utils/folders'
 import { FolderDocumentList, type SortField, type SortDir } from '@/components/kb/FolderDocumentList'
+import { FolderDocumentGrid } from '@/components/kb/FolderDocumentGrid'
+import { KBHeader } from '@/components/kb/KBHeader'
+import { WikiView } from '@/components/wiki/WikiView'
 import type { DocumentListItem } from '@/lib/types'
-import { cn } from '@/lib/utils'
 
 const pathCache = new Map<string, string>()
 
 type Props = {
   kbId: string
   kbSlug: string
+  kbName: string
 }
 
-export function KBDetail({ kbId, kbSlug }: Props) {
+export function KBDetail({ kbId, kbSlug, kbName }: Props) {
+  const router = useRouter()
   const userId = useUserStore((s) => s.user?.id)
   const { documents, setDocuments, loading, refetchDocuments } = useKBDocuments(kbId)
 
   const [currentPath, setCurrentPathRaw] = React.useState(() => pathCache.get(kbId) ?? '/')
   const historyRef = React.useRef<string[]>([pathCache.get(kbId) ?? '/'])
   const historyIndexRef = React.useRef(0)
-  const [canGoBack, setCanGoBack] = React.useState(false)
+  const [canGoBack, setCanGoBack] = React.useState(true)
   const [canGoForward, setCanGoForward] = React.useState(false)
 
   const updateHistoryBooleans = React.useCallback(() => {
-    setCanGoBack(historyIndexRef.current > 0)
+    setCanGoBack(true)
     setCanGoForward(historyIndexRef.current < historyRef.current.length - 1)
   }, [])
 
@@ -62,12 +67,15 @@ export function KBDetail({ kbId, kbSlug }: Props) {
   }, [setCurrentPath, updateHistoryBooleans])
 
   const goBack = React.useCallback(() => {
-    if (historyIndexRef.current <= 0) return
+    if (historyIndexRef.current <= 0) {
+      router.push('/kb')
+      return
+    }
     historyIndexRef.current--
     const path = historyRef.current[historyIndexRef.current]
     updateHistoryBooleans()
     setCurrentPath(path)
-  }, [setCurrentPath, updateHistoryBooleans])
+  }, [router, setCurrentPath, updateHistoryBooleans])
 
   const goForward = React.useCallback(() => {
     if (historyIndexRef.current >= historyRef.current.length - 1) return
@@ -77,14 +85,27 @@ export function KBDetail({ kbId, kbSlug }: Props) {
     setCurrentPath(path)
   }, [setCurrentPath, updateHistoryBooleans])
 
+  const [viewMode, setViewModeRaw] = React.useState<'list' | 'grid'>(() => {
+    if (typeof window === 'undefined') return 'list'
+    const stored = localStorage.getItem('llmwiki:view-mode')
+    return stored === 'grid' ? 'grid' : 'list'
+  })
+
+  const setViewMode = React.useCallback((mode: 'list' | 'grid') => {
+    setViewModeRaw(mode)
+    localStorage.setItem('llmwiki:view-mode', mode)
+  }, [])
+
+  const [searchQuery, setSearchQuery] = React.useState('')
+
   const [sortField, setSortField] = React.useState<SortField>(() => {
     if (typeof window === 'undefined') return 'date'
-    const stored = localStorage.getItem('supavault:sort-field')
+    const stored = localStorage.getItem('llmwiki:sort-field')
     return stored === 'name' || stored === 'date' ? stored : 'date'
   })
   const [sortDir, setSortDir] = React.useState<SortDir>(() => {
     if (typeof window === 'undefined') return 'desc'
-    const stored = localStorage.getItem('supavault:sort-direction') as SortDir
+    const stored = localStorage.getItem('llmwiki:sort-direction') as SortDir
     return stored === 'asc' || stored === 'desc' ? stored : 'desc'
   })
 
@@ -92,12 +113,12 @@ export function KBDetail({ kbId, kbSlug }: Props) {
     if (field === sortField) {
       const next = sortDir === 'asc' ? 'desc' : 'asc'
       setSortDir(next)
-      localStorage.setItem('supavault:sort-direction', next)
+      localStorage.setItem('llmwiki:sort-direction', next)
     } else {
       setSortField(field)
       setSortDir('asc')
-      localStorage.setItem('supavault:sort-field', field)
-      localStorage.setItem('supavault:sort-direction', 'asc')
+      localStorage.setItem('llmwiki:sort-field', field)
+      localStorage.setItem('llmwiki:sort-direction', 'asc')
     }
   }
 
@@ -106,6 +127,13 @@ export function KBDetail({ kbId, kbSlug }: Props) {
 
   const [fileDragOver, setFileDragOver] = React.useState(false)
   const dragCounterRef = React.useRef(0)
+
+  const hasWiki = React.useMemo(
+    () => documents.some(d => d.path === '/wiki/' || d.path.startsWith('/wiki/')),
+    [documents],
+  )
+
+  const [activeTab, setActiveTab] = React.useState<'wiki' | 'sources'>('wiki')
 
   const allFolders = React.useMemo(() => {
     const paths = new Set<string>()
@@ -125,18 +153,29 @@ export function KBDetail({ kbId, kbSlug }: Props) {
 
   const childFolderNames = React.useMemo(() => {
     let names = getChildFolderNames(allFolders, currentPath).filter((n) => !n.startsWith('.'))
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      names = names.filter((n) => n.toLowerCase().includes(q))
+    }
     names.sort((a, b) => {
       const cmp = a.localeCompare(b)
       return sortField === 'name' && sortDir === 'desc' ? -cmp : cmp
     })
     return names
-  }, [allFolders, currentPath, sortField, sortDir])
+  }, [allFolders, currentPath, sortField, sortDir, searchQuery])
 
   const documentsAtPath = React.useMemo(() => {
     let docs = filterDocumentsAtPath(documents, currentPath).filter((d) => !d.archived)
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      docs = docs.filter((d) => {
+        const name = (d.title || d.filename).toLowerCase()
+        return name.includes(q)
+      })
+    }
     docs = sortDocuments(docs, sortField, sortDir)
     return docs
-  }, [documents, currentPath, sortField, sortDir])
+  }, [documents, currentPath, sortField, sortDir, searchQuery])
 
   const allItemIds = React.useMemo(() => {
     const ids: string[] = []
@@ -206,13 +245,28 @@ export function KBDetail({ kbId, kbSlug }: Props) {
   }
 
   const handleDeleteSelected = async () => {
-    for (const id of selectedIds) {
-      if (id.startsWith('doc:')) {
-        await handleDeleteDocument(id.slice(4))
-      } else if (id.startsWith('folder:')) {
-        handleDeleteFolder(id.slice(7))
+    const token = getToken()
+    if (!token) return
+
+    const docIds = [...selectedIds].filter((s) => s.startsWith('doc:')).map((s) => s.slice(4))
+    const folderNames = [...selectedIds].filter((s) => s.startsWith('folder:')).map((s) => s.slice(7))
+
+    if (docIds.length > 0) {
+      try {
+        await apiFetch('/v1/documents/bulk-delete', token, {
+          method: 'POST',
+          body: JSON.stringify({ ids: docIds }),
+        })
+        setDocuments((prev) => prev.filter((d) => !docIds.includes(d.id)))
+      } catch {
+        toast.error('Failed to delete documents')
       }
     }
+
+    for (const name of folderNames) {
+      handleDeleteFolder(name)
+    }
+
     setSelectedIds(new Set())
   }
 
@@ -241,10 +295,10 @@ export function KBDetail({ kbId, kbSlug }: Props) {
     try {
       const data = await apiFetch<DocumentListItem>(`/v1/knowledge-bases/${kbId}/documents/note`, token, {
         method: 'POST',
-        body: JSON.stringify({ path: currentPath }),
+        body: JSON.stringify({ filename: 'Untitled.md', path: currentPath }),
       })
       setDocuments((prev) => [data, ...prev])
-      toast.success('Note created')
+      if (data.document_number) router.push(`/kb/${kbSlug}/${data.document_number}`)
     } catch {
       toast.error('Failed to create note')
     }
@@ -344,7 +398,7 @@ export function KBDetail({ kbId, kbSlug }: Props) {
   }
 
   const handleFileDragEnter = (e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes('application/x-supavault-item')) return
+    if (e.dataTransfer.types.includes('application/x-llmwiki-item')) return
     e.preventDefault()
     dragCounterRef.current++
     if (dragCounterRef.current === 1) setFileDragOver(true)
@@ -357,13 +411,13 @@ export function KBDetail({ kbId, kbSlug }: Props) {
   }
 
   const handleFileDragOver = (e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes('application/x-supavault-item')) return
+    if (e.dataTransfer.types.includes('application/x-llmwiki-item')) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'copy'
   }
 
   const handleFileDrop = async (e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes('application/x-supavault-item')) return
+    if (e.dataTransfer.types.includes('application/x-llmwiki-item')) return
     e.preventDefault()
     dragCounterRef.current = 0
     setFileDragOver(false)
@@ -389,31 +443,81 @@ export function KBDetail({ kbId, kbSlug }: Props) {
     const token = getToken()
     if (!token || !userId) return
 
-    for (const file of files) {
-      const upload = async () => {
-        const ext = file.name.split('.').pop()?.toLowerCase()
-        if (ext === 'md' || ext === 'txt') {
-          const content = await file.text()
-          const title = file.name.replace(/\.(md|txt)$/i, '')
-          try {
-            const data = await apiFetch<DocumentListItem>(`/v1/knowledge-bases/${kbId}/documents/note`, token, {
-              method: 'POST',
-              body: JSON.stringify({ title, content, path: targetPath }),
-            })
-            setDocuments((prev) => [data, ...prev])
-            toast.success(`Imported ${file.name}`)
-          } catch {
-            toast.error(`Failed to import ${file.name}`)
-          }
-        } else {
-          toast.info(`File upload for ${ext} not yet supported`)
-        }
+    const uploads = files.map(async (file) => {
+      const ext = file.name.split('.').pop()?.toLowerCase()
+      if (ext !== 'md' && ext !== 'txt') {
+        toast.info(`${ext} files not yet supported`)
+        return
       }
-      upload()
-    }
+      const content = await file.text()
+      const title = file.name.replace(/\.(md|txt)$/i, '')
+      try {
+        const data = await apiFetch<DocumentListItem>(`/v1/knowledge-bases/${kbId}/documents/note`, token, {
+          method: 'POST',
+          body: JSON.stringify({ filename: file.name, title, content, path: targetPath }),
+        })
+        setDocuments((prev) => [data, ...prev])
+      } catch {
+        toast.error(`Failed to import ${file.name}`)
+      }
+    })
+
+    Promise.all(uploads).then(() => {
+      const mdFiles = files.filter(f => /\.(md|txt)$/i.test(f.name))
+      if (mdFiles.length > 0) toast.success(`Imported ${mdFiles.length} file${mdFiles.length > 1 ? 's' : ''}`)
+    })
   }, [kbId, userId])
 
   const breadcrumbs = parseBreadcrumbs(currentPath)
+
+  const onDeleteDocumentFromView = (id: string) => {
+    if (selectedIds.has(`doc:${id}`) && selectedIds.size > 1) handleDeleteSelected()
+    else handleDeleteDocument(id)
+  }
+
+  const onDeleteFolderFromView = (name: string) => {
+    if (selectedIds.has(`folder:${name}`) && selectedIds.size > 1) handleDeleteSelected()
+    else handleDeleteFolder(name)
+  }
+
+  const onOpenDocument = (doc: DocumentListItem) => {
+    router.push(`/kb/${kbSlug}/${doc.document_number}`)
+  }
+
+  const onNavigateFolderByName = (name: string) => navigateFolder(joinPath(currentPath, name))
+
+  if (activeTab === 'wiki') {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="px-5 py-4 shrink-0">
+          <KBHeader
+            kbName={kbName}
+            breadcrumbs={breadcrumbs}
+            onNavigate={navigateFolder}
+            onGoBack={goBack}
+            onGoForward={goForward}
+            canGoBack={canGoBack}
+            canGoForward={canGoForward}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            sortField={sortField}
+            sortDir={sortDir}
+            onSortChange={handleSortChange}
+            onCreateNote={handleCreateNote}
+            onCreateFolder={handleCreateFolder}
+            onUpload={handleUploadClick}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <WikiView kbId={kbId} documents={documents} />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -461,73 +565,27 @@ export function KBDetail({ kbId, kbSlug }: Props) {
         }}
       >
         <div className="px-5 py-4 w-full min-h-full flex flex-col">
-          <div className="flex items-center justify-between mb-4 flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={goBack}
-                disabled={!canGoBack}
-                className={cn(
-                  'p-1 rounded transition-colors',
-                  canGoBack ? 'hover:bg-accent cursor-pointer text-foreground' : 'text-muted-foreground/30 cursor-default',
-                )}
-              >
-                <ChevronLeft className="size-4" />
-              </button>
-              <button
-                onClick={goForward}
-                disabled={!canGoForward}
-                className={cn(
-                  'p-1 rounded transition-colors',
-                  canGoForward ? 'hover:bg-accent cursor-pointer text-foreground' : 'text-muted-foreground/30 cursor-default',
-                )}
-              >
-                <ChevronRight className="size-4" />
-              </button>
-
-              <nav className="flex items-center gap-1 text-sm">
-                {breadcrumbs.map((crumb, i) => (
-                  <React.Fragment key={crumb.path}>
-                    {i > 0 && <span className="text-muted-foreground/40">/</span>}
-                    <button
-                      onClick={() => navigateFolder(crumb.path)}
-                      className={cn(
-                        'px-1.5 py-0.5 rounded transition-colors cursor-pointer',
-                        i === breadcrumbs.length - 1
-                          ? 'text-foreground font-medium'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-accent',
-                      )}
-                    >
-                      {crumb.label}
-                    </button>
-                  </React.Fragment>
-                ))}
-              </nav>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleCreateNote}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border border-border hover:bg-accent transition-colors cursor-pointer"
-              >
-                <NotepadText className="size-3.5" />
-                New Note
-              </button>
-              <button
-                onClick={handleCreateFolder}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border border-border hover:bg-accent transition-colors cursor-pointer"
-              >
-                <Folder className="size-3.5" />
-                New Folder
-              </button>
-              <button
-                onClick={handleUploadClick}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border border-border hover:bg-accent transition-colors cursor-pointer"
-              >
-                <Upload className="size-3.5" />
-                Upload
-              </button>
-            </div>
-          </div>
+          <KBHeader
+            kbName={kbName}
+            breadcrumbs={breadcrumbs}
+            onNavigate={navigateFolder}
+            onGoBack={goBack}
+            onGoForward={goForward}
+            canGoBack={canGoBack}
+            canGoForward={canGoForward}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            sortField={sortField}
+            sortDir={sortDir}
+            onSortChange={handleSortChange}
+            onCreateNote={handleCreateNote}
+            onCreateFolder={handleCreateFolder}
+            onUpload={handleUploadClick}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
 
           <ContextMenu>
             <ContextMenuTrigger asChild>
@@ -536,34 +594,42 @@ export function KBDetail({ kbId, kbSlug }: Props) {
                   <div className="flex items-center justify-center py-16">
                     <Loader2 className="size-5 animate-spin text-muted-foreground" />
                   </div>
-                ) : (
+                ) : viewMode === 'list' ? (
                   <FolderDocumentList
                     kbId={kbId}
                     folders={childFolderNames}
                     documents={documentsAtPath}
                     currentPath={currentPath}
-                    onNavigateFolder={(name: string) => navigateFolder(joinPath(currentPath, name))}
-                    onOpenDocument={(doc: DocumentListItem) => {
-                      // Navigate to document detail — for now just log
-                      console.log('Open document:', doc.id, doc.filename)
-                    }}
-                    onDeleteDocument={(id: string) => {
-                      if (selectedIds.has(`doc:${id}`) && selectedIds.size > 1) handleDeleteSelected()
-                      else handleDeleteDocument(id)
-                    }}
-                    onDeleteFolder={(name: string) => {
-                      if (selectedIds.has(`folder:${name}`) && selectedIds.size > 1) handleDeleteSelected()
-                      else handleDeleteFolder(name)
-                    }}
+                    onNavigateFolder={onNavigateFolderByName}
+                    onOpenDocument={onOpenDocument}
+                    onDeleteDocument={onDeleteDocumentFromView}
+                    onDeleteFolder={onDeleteFolderFromView}
                     onRenameFolder={handleRenameFolder}
                     onMoveDocument={handleMoveDocument}
                     onCreateNote={handleCreateNote}
                     onCreateFolder={handleCreateFolder}
+                    onUpload={handleUploadClick}
                     sortField={sortField}
                     sortDir={sortDir}
                     onSortChange={handleSortChange}
                     selectedIds={selectedIds}
                     onSelect={handleSelect}
+                  />
+                ) : (
+                  <FolderDocumentGrid
+                    folders={childFolderNames}
+                    documents={documentsAtPath}
+                    currentPath={currentPath}
+                    onNavigateFolder={onNavigateFolderByName}
+                    onOpenDocument={onOpenDocument}
+                    onDeleteDocument={onDeleteDocumentFromView}
+                    onDeleteFolder={onDeleteFolderFromView}
+                    onMoveDocument={handleMoveDocument}
+                    selectedIds={selectedIds}
+                    onSelect={handleSelect}
+                    onCreateNote={handleCreateNote}
+                    onCreateFolder={handleCreateFolder}
+                    onUpload={handleUploadClick}
                   />
                 )}
               </div>
