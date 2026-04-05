@@ -68,7 +68,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-full flex flex-col">
+    <div className="h-full min-h-0 flex flex-col bg-background">
       {/* Progress bar */}
       <div className="shrink-0 px-8 pt-8 pb-0">
         <div className="max-w-lg mx-auto flex gap-1.5">
@@ -85,7 +85,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* Step content */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 min-h-0 flex items-center justify-center p-8">
         <div className="w-full max-w-lg">
 
           {step === 'welcome' && (

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useParams } from 'next/navigation'
-import { useKBStore } from '@/stores'
+import { useKBStore, useUserStore } from '@/stores'
 import { KBDetail } from '@/components/kb/KBDetail'
 import { Loader2 } from 'lucide-react'
 
@@ -10,13 +10,14 @@ export default function KBPage() {
   const params = useParams<{ slug: string }>()
   const knowledgeBases = useKBStore((s) => s.knowledgeBases)
   const loading = useKBStore((s) => s.loading)
+  const user = useUserStore((s) => s.user)
 
   const kb = React.useMemo(
     () => knowledgeBases.find((k) => k.slug === params.slug),
     [knowledgeBases, params.slug]
   )
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="flex items-center justify-center h-full bg-background">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />

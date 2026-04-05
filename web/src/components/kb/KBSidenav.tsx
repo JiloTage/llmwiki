@@ -669,13 +669,12 @@ function SourceTreeNode({
         <FileText className="size-3 shrink-0 text-destructive/60" />
       ) : (() => {
         const ft = node.doc?.file_type || ''
-        const cls = "size-3 shrink-0 opacity-50"
-        if (ft === 'pdf') return <FileText className={cls} />
-        if (['png','jpg','jpeg','webp','gif'].includes(ft)) return <Image className={cls} />
-        if (['xlsx','xls','csv'].includes(ft)) return <Sheet className={cls} />
-        if (['pptx','ppt'].includes(ft)) return <Presentation className={cls} />
-        if (['html','htm'].includes(ft)) return <FileCode className={cls} />
-        return <NotepadText className={cls} />
+        if (ft === 'pdf') return <FileText className="size-3 shrink-0 text-red-400/70" />
+        if (['png','jpg','jpeg','webp','gif'].includes(ft)) return <Image className="size-3 shrink-0 text-violet-400/70" />
+        if (['xlsx','xls','csv'].includes(ft)) return <Sheet className="size-3 shrink-0 text-emerald-500/70" />
+        if (['pptx','ppt'].includes(ft)) return <Presentation className="size-3 shrink-0 text-orange-400/70" />
+        if (['html','htm'].includes(ft)) return <FileCode className="size-3 shrink-0 text-sky-400/70" />
+        return <NotepadText className="size-3 shrink-0 opacity-50" />
       })()}
       <span className="truncate flex-1">{node.name}</span>
       <SourceContextMenu

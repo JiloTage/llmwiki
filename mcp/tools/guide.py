@@ -31,10 +31,16 @@ Parent pages summarize; child pages go deep. The UI renders this as an expandabl
 - Use `##` for major sections, `###` for subsections
 - One idea per section. Bullet points for facts, prose for synthesis.
 
-### Visual Elements — USE LIBERALLY
-A page without diagrams or tables is too bare. Include:
+### Visual Elements — MANDATORY
 
-**Mermaid diagrams** for flows, architecture, sequences, quadrant charts:
+**Every wiki page MUST include at least one visual element.** A page with only prose is incomplete. Visuals make the wiki scannable, memorable, and worth maintaining.
+
+**Mermaid diagrams** — use aggressively for ANY structured relationship:
+- Flowcharts for processes, pipelines, decision trees
+- Sequence diagrams for interactions, timelines, meeting flows
+- Quadrant charts for comparisons, trade-off analyses
+- Entity relationship diagrams for people, companies, concepts
+
 ````
 ```mermaid
 graph LR
@@ -42,11 +48,17 @@ graph LR
 ```
 ````
 
-**Tables** for comparisons, feature matrices, structured data.
+**Tables** — use for ANY structured comparison:
+- Feature matrices, pros/cons, meeting attendees + roles
+- Timeline of events, financial data, metric comparisons
+- If you're listing 3+ items with attributes, it should be a table
 
-**SVG assets** for custom visuals Mermaid can't express:
+**SVG assets** — for custom visuals Mermaid can't express:
 - Create: `write(command="create", path="/wiki/", title="diagram.svg", content="<svg>...</svg>", tags=["diagram"])`
-- Embed: `![Description](diagram.svg)`
+- Embed in wiki pages: `![Description](diagram.svg)`
+- Use for: org charts, custom layouts, annotated diagrams, data visualizations
+
+**Rule of thumb:** If a section describes a relationship, process, comparison, or hierarchy — visualize it, don't just describe it in prose.
 
 ### Citations — REQUIRED
 
