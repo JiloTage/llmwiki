@@ -16,11 +16,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "LLM Wiki",
-  description: "Your LLM compiles and maintains a structured wiki from raw sources. Open-source implementation of Karpathy's LLM Wiki.",
+  description: "Free, open-source implementation of Karpathy's LLM Wiki. Upload documents and build a compounding wiki directly via Claude.",
   metadataBase: new URL("https://llmwiki.app"),
   openGraph: {
     title: "LLM Wiki",
-    description: "Your LLM compiles and maintains a structured wiki from raw sources.",
+    description: "Free, open-source implementation of Karpathy's LLM Wiki. Upload documents and build a compounding wiki directly via Claude.",
     url: "https://llmwiki.app",
     siteName: "LLM Wiki",
     type: "website",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "LLM Wiki",
-    description: "Your LLM compiles and maintains a structured wiki from raw sources.",
+    description: "Free, open-source implementation of Karpathy's LLM Wiki. Upload documents and build a compounding wiki directly via Claude.",
     images: ["/og.png"],
   },
 };
