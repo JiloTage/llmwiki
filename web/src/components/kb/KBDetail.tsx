@@ -191,7 +191,7 @@ export function KBDetail({ kbId, kbName }: Props) {
   // Token helper (used by multiple handlers below)
   const getToken = () => {
     const t = useUserStore.getState().accessToken
-    if (!t) { toast.error('Not authenticated'); return null }
+    if (!t) { toast.error('認証されていません'); return null }
     return t
   }
 
@@ -256,7 +256,7 @@ export function KBDetail({ kbId, kbName }: Props) {
     if (!t) return
     const ids = Array.from(selectedIds)
     const count = ids.length
-    if (!window.confirm(`Delete ${count} selected document${count > 1 ? 's' : ''}?`)) return
+    if (!window.confirm(`選択した ${count} 件のドキュメントを削除しますか？`)) return
 
     const results = await Promise.allSettled(
       ids.map((id) => apiFetch(`/v1/documents/${id}`, t, { method: 'DELETE' }))
@@ -272,7 +272,7 @@ export function KBDetail({ kbId, kbName }: Props) {
       }
     }
     if (failed.length > 0) {
-      toast.error(`Failed to delete ${failed.length} document${failed.length > 1 ? 's' : ''}`)
+      toast.error(`${failed.length} 件のドキュメント削除に失敗しました`)
     }
     clearSelection()
   }
@@ -431,7 +431,7 @@ export function KBDetail({ kbId, kbName }: Props) {
     }
 
     if (!activeWikiDoc) {
-      setPageContent(`Page not found: ${wikiActivePath}`)
+      setPageContent(`ページが見つかりません: ${wikiActivePath}`)
       setPageTitle('')
       setPageLoadedPath(wikiActivePath)
       return
@@ -448,7 +448,7 @@ export function KBDetail({ kbId, kbName }: Props) {
 
     apiFetch<{ content: string }>(`/v1/documents/${activeWikiDoc.id}/content`, token)
       .then((res) => setPageContent(res.content || ''))
-      .catch(() => setPageContent('Failed to load page content.'))
+      .catch(() => setPageContent('ページ内容の読み込みに失敗しました。'))
       .finally(() => {
         setPageLoading(false)
         setPageLoadedPath(wikiActivePath)
@@ -497,7 +497,7 @@ export function KBDetail({ kbId, kbName }: Props) {
       setWikiActivePath(null)
       updateUrl({ docNumber: data.document_number })
     } catch {
-      toast.error('Failed to create note')
+      toast.error('ノートの作成に失敗しました')
     }
   }
 
@@ -515,7 +515,7 @@ export function KBDetail({ kbId, kbName }: Props) {
         setWikiActivePath(null)
         updateUrl({ docNumber: data.document_number })
       })
-      .catch(() => toast.error('Failed to create folder'))
+      .catch(() => toast.error('フォルダの作成に失敗しました'))
   }
 
   const handleMoveDocument = async (docId: string, targetPath: string) => {
@@ -528,7 +528,7 @@ export function KBDetail({ kbId, kbName }: Props) {
       })
       setDocuments((prev) => prev.map((d) => d.id === docId ? { ...d, path: targetPath } : d))
     } catch {
-      toast.error('Failed to move document')
+      toast.error('ドキュメントの移動に失敗しました')
     }
   }
 
@@ -540,7 +540,7 @@ export function KBDetail({ kbId, kbName }: Props) {
       setDocuments((prev) => prev.filter((d) => d.id !== docId))
       if (activeSourceDocId === docId) setActiveSourceDocId(null)
     } catch {
-      toast.error('Failed to delete document')
+      toast.error('ドキュメントの削除に失敗しました')
     }
   }
 
@@ -554,7 +554,7 @@ export function KBDetail({ kbId, kbName }: Props) {
       })
       setDocuments((prev) => prev.map((d) => d.id === docId ? { ...d, title: newTitle } : d))
     } catch {
-      toast.error('Failed to rename document')
+      toast.error('ドキュメント名の変更に失敗しました')
     }
   }
 
@@ -583,11 +583,11 @@ export function KBDetail({ kbId, kbName }: Props) {
         },
         headers: { Authorization: `Bearer ${t}` },
         onError: (error) => {
-          toast.error(`Upload failed: ${file.name}`)
+          toast.error(`アップロード失敗: ${file.name}`)
           reject(error)
         },
         onSuccess: () => {
-          toast.success(`${file.name} uploaded, processing...`)
+          toast.success(`${file.name} をアップロードしました。処理中です...`)
           resolve()
         },
       })
@@ -611,21 +611,21 @@ export function KBDetail({ kbId, kbName }: Props) {
           })
           setDocuments((prev) => [data, ...prev])
         } catch {
-          toast.error(`Failed to import ${file.name}`)
+          toast.error(`${file.name} の取り込みに失敗しました`)
         }
       } else {
         const tusTypes = new Set(['pdf', 'pptx', 'ppt', 'docx', 'doc', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'xlsx', 'xls', 'csv', 'html', 'htm'])
         if (ext && tusTypes.has(ext)) {
           await tusUploadFile(file)
         } else {
-          toast.info(`${ext} files not yet supported`)
+          toast.info(`${ext} ファイルはまだサポートされていません`)
         }
       }
     })
 
     Promise.all(uploads).then(() => {
       const textFiles = files.filter((f) => /\.(md|txt)$/i.test(f.name))
-      if (textFiles.length > 0) toast.success(`Imported ${textFiles.length} file${textFiles.length > 1 ? 's' : ''}`)
+      if (textFiles.length > 0) toast.success(`${textFiles.length} 件のファイルを取り込みました`)
     })
   }, [kbId, userId, tusUploadFile])
 
@@ -691,8 +691,8 @@ export function KBDetail({ kbId, kbName }: Props) {
         <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center pointer-events-none">
           <div className="flex flex-col items-center gap-3 border-2 border-dashed border-primary rounded-xl px-12 py-10">
             <UploadIcon className="size-8 text-primary" />
-            <p className="text-sm font-medium text-primary">Drop files to upload</p>
-            <p className="text-xs text-muted-foreground">PDF, Word, PowerPoint, images, and more</p>
+            <p className="text-sm font-medium text-primary">ここにファイルをドロップしてアップロード</p>
+            <p className="text-xs text-muted-foreground">PDF、Word、PowerPoint、画像などに対応</p>
           </div>
         </div>
       )}
@@ -768,9 +768,9 @@ export function KBDetail({ kbId, kbName }: Props) {
             <div className="flex flex-col items-center justify-center h-full gap-4 px-6">
               <BookOpen className="size-10 text-muted-foreground/20" />
               <div className="text-center max-w-sm">
-                <h3 className="text-base font-medium mb-1.5">No wiki yet</h3>
+                <h3 className="text-base font-medium mb-1.5">まだ Wiki がありません</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Add some sources, then ask Claude to compile a wiki from them.
+                  まずソースを追加し、その内容から Wiki を構築するよう Claude に依頼してください。
                 </p>
               </div>
               <div className="flex items-center gap-3 mt-2">
@@ -779,7 +779,7 @@ export function KBDetail({ kbId, kbName }: Props) {
                   className="inline-flex items-center gap-2 rounded-full bg-foreground text-background px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   <UploadIcon className="size-3.5 opacity-60" />
-                  Upload Sources
+                  ソースをアップロード
                 </button>
                 <a
                   href="https://claude.ai"
@@ -787,7 +787,7 @@ export function KBDetail({ kbId, kbName }: Props) {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2 text-sm font-medium hover:bg-accent transition-colors"
                 >
-                  Open Claude
+                  Claude を開く
                   <ArrowUpRight className="size-3.5 opacity-60" />
                 </a>
               </div>

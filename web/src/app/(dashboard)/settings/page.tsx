@@ -47,7 +47,7 @@ export default function SettingsPage() {
       setConfigCopied(true)
       setTimeout(() => setConfigCopied(false), 2000)
     } catch {
-      console.error('Failed to copy')
+      console.error('コピーに失敗しました')
     }
   }
 
@@ -60,20 +60,20 @@ export default function SettingsPage() {
         >
           <ArrowLeft className="size-4" />
         </button>
-        <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
+        <h1 className="text-xl font-semibold tracking-tight">設定</h1>
       </div>
 
       {/* Usage */}
       {usage && (
         <section>
-          <h2 className="text-base font-medium">Usage</h2>
+          <h2 className="text-base font-medium">利用状況</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {usage.document_count} document{usage.document_count !== 1 ? 's' : ''} uploaded
+            アップロード済みドキュメント: {usage.document_count} 件
           </p>
           <div className="mt-4 space-y-4">
             <div>
               <div className="flex items-center justify-between text-sm mb-1.5">
-                <span className="text-muted-foreground">Storage</span>
+                <span className="text-muted-foreground">ストレージ</span>
                 <span className="font-mono text-xs">
                   {formatBytes(usage.total_storage_bytes)} / {formatBytes(usage.max_storage_bytes)}
                 </span>
@@ -94,7 +94,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <div className="flex items-center justify-between text-sm mb-1.5">
-                <span className="text-muted-foreground">OCR Pages</span>
+                <span className="text-muted-foreground">OCR ページ数</span>
                 <span className="font-mono text-xs">
                   {usage.total_pages.toLocaleString()} / {usage.max_pages.toLocaleString()}
                 </span>
@@ -121,9 +121,9 @@ export default function SettingsPage() {
 
       {/* MCP Config */}
       <section>
-        <h2 className="text-base font-medium">Connect via OAuth</h2>
+        <h2 className="text-base font-medium">OAuth で接続</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Add this configuration to your MCP client. On first connection, it should prompt you to sign in with Supabase.
+          この設定を MCP クライアントに追加してください。初回接続時に Supabase でのサインインが求められます。
         </p>
         <div className="relative mt-4">
           <pre className="rounded-lg bg-muted border border-border p-4 text-sm font-mono overflow-x-auto text-foreground">
@@ -138,7 +138,7 @@ export default function SettingsPage() {
                 : 'bg-background border border-border text-muted-foreground hover:text-foreground hover:bg-accent'
             )}
           >
-            {configCopied ? <><Check size={12} />Copied</> : <><Copy size={12} />Copy</>}
+            {configCopied ? <><Check size={12} />コピー済み</> : <><Copy size={12} />コピー</>}
           </button>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">

@@ -65,7 +65,7 @@ export function NoteToolbar({ editor, backLabel, noteTitle, onTitleChange, onBac
             </button>
             <span className="text-muted-foreground/40">/</span>
             <span className="px-1.5 py-0.5 text-foreground font-medium truncate">
-              {noteTitle || 'Untitled'}
+              {noteTitle || '無題'}
             </span>
           </nav>
         </>
@@ -76,7 +76,7 @@ export function NoteToolbar({ editor, backLabel, noteTitle, onTitleChange, onBac
           type="text"
           value={noteTitle}
           onChange={(e) => onTitleChange?.(e.target.value)}
-          placeholder="Untitled"
+          placeholder="無題"
           className="flex-1 min-w-0 text-sm font-medium text-foreground bg-transparent border-none outline-none placeholder:text-muted-foreground/30 mr-2"
         />
       )}
@@ -85,14 +85,14 @@ export function NoteToolbar({ editor, backLabel, noteTitle, onTitleChange, onBac
         <ToolbarButton
           onClick={() => editor?.chain().focus().undo().run()}
           disabled={!editor?.can().undo()}
-          title="Undo"
+          title="元に戻す"
         >
           <Undo2 className="size-3.5" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor?.chain().focus().redo().run()}
           disabled={!editor?.can().redo()}
-          title="Redo"
+          title="やり直す"
         >
           <Redo2 className="size-3.5" />
         </ToolbarButton>
@@ -102,21 +102,21 @@ export function NoteToolbar({ editor, backLabel, noteTitle, onTitleChange, onBac
         <ToolbarButton
           active={editor?.isActive('bold')}
           onClick={() => editor?.chain().focus().toggleBold().run()}
-          title="Bold"
+          title="太字"
         >
           <Bold className="size-3.5" />
         </ToolbarButton>
         <ToolbarButton
           active={editor?.isActive('italic')}
           onClick={() => editor?.chain().focus().toggleItalic().run()}
-          title="Italic"
+          title="斜体"
         >
           <Italic className="size-3.5" />
         </ToolbarButton>
         <ToolbarButton
           active={editor?.isActive('heading', { level: 2 })}
           onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
-          title="Heading"
+          title="見出し"
         >
           <Heading2 className="size-3.5" />
         </ToolbarButton>
@@ -126,14 +126,14 @@ export function NoteToolbar({ editor, backLabel, noteTitle, onTitleChange, onBac
         <ToolbarButton
           active={editor?.isActive('bulletList')}
           onClick={() => editor?.chain().focus().toggleBulletList().run()}
-          title="Bullet List"
+          title="箇条書き"
         >
           <List className="size-3.5" />
         </ToolbarButton>
         <ToolbarButton
           active={editor?.isActive('orderedList')}
           onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-          title="Ordered List"
+          title="番号付きリスト"
         >
           <ListOrdered className="size-3.5" />
         </ToolbarButton>
@@ -141,7 +141,7 @@ export function NoteToolbar({ editor, backLabel, noteTitle, onTitleChange, onBac
           <ToolbarButton
             active
             onClick={() => editor.chain().focus().unsetLink().run()}
-            title="Remove link"
+            title="リンクを解除"
           >
             <LinkIcon className="size-3.5" />
           </ToolbarButton>
@@ -152,7 +152,7 @@ export function NoteToolbar({ editor, backLabel, noteTitle, onTitleChange, onBac
           }}>
             <PopoverTrigger asChild>
               <button
-                title="Link"
+                title="リンク"
                 className={cn(
                   'p-1.5 rounded-md transition-colors cursor-pointer',
                   'text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -179,7 +179,7 @@ export function NoteToolbar({ editor, backLabel, noteTitle, onTitleChange, onBac
                   disabled={!linkUrl.trim()}
                   className="text-sm px-2 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 cursor-pointer"
                 >
-                  Add
+                  追加
                 </button>
               </form>
             </PopoverContent>
@@ -192,7 +192,7 @@ export function NoteToolbar({ editor, backLabel, noteTitle, onTitleChange, onBac
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                title="Table options"
+                title="表の操作"
                 className="p-1.5 rounded-md transition-colors cursor-pointer bg-accent text-foreground"
               >
                 <Table2 className="size-3.5" />
@@ -201,18 +201,18 @@ export function NoteToolbar({ editor, backLabel, noteTitle, onTitleChange, onBac
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => editor.chain().focus().addRowAfter().run()}>
                 <Rows3 className="size-3.5 mr-2" />
-                Add Row Below
+                下に行を追加
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => editor.chain().focus().addColumnAfter().run()}>
                 <Columns3 className="size-3.5 mr-2" />
-                Add Column Right
+                右に列を追加
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => editor.chain().focus().deleteRow().run()}>
-                Delete Row
+                行を削除
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => editor.chain().focus().deleteColumn().run()}>
-                Delete Column
+                列を削除
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -220,14 +220,14 @@ export function NoteToolbar({ editor, backLabel, noteTitle, onTitleChange, onBac
                 className="text-destructive focus:text-destructive"
               >
                 <Trash2 className="size-3.5 mr-2" />
-                Delete Table
+                表を削除
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
           <ToolbarButton
             onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-            title="Insert Table"
+            title="表を挿入"
           >
             <Table2 className="size-3.5" />
           </ToolbarButton>

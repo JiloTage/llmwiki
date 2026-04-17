@@ -115,7 +115,7 @@ export function NoteEditor({
         heading: { levels: [1, 2, 3] },
         link: false,
       }),
-      Placeholder.configure({ placeholder: 'Start writing...' }),
+      Placeholder.configure({ placeholder: '書き始める...' }),
       Typography,
       Link.configure({ autolink: true, openOnClick: false }),
       Image.configure({ inline: false, allowBase64: true }),
@@ -435,7 +435,7 @@ export function NoteEditor({
     <div className="h-full flex flex-col overflow-hidden">
       <NoteToolbar
         editor={editor}
-        backLabel={backLabel ?? 'Back'}
+        backLabel={backLabel ?? '戻る'}
         noteTitle={title}
         onTitleChange={embedded ? (val: string) => {
           const sanitized = sanitizeTitle(val)
@@ -465,7 +465,7 @@ export function NoteEditor({
               type="text"
               value={title}
               onChange={handleTitleChange}
-              placeholder="Untitled"
+              placeholder="無題"
               className="w-full text-2xl font-bold text-foreground bg-transparent border-none outline-none placeholder:text-muted-foreground/30 mb-4"
             />
           )}
@@ -477,7 +477,7 @@ export function NoteEditor({
             >
               {date && <span className="bg-muted px-1.5 py-0.5 rounded text-[11px]">{date}</span>}
               {tags.length > 0 && (
-                <span className="bg-muted px-1.5 py-0.5 rounded text-[11px]">{tags.length} tag{tags.length !== 1 ? 's' : ''}</span>
+                <span className="bg-muted px-1.5 py-0.5 rounded text-[11px]">タグ {tags.length} 件</span>
               )}
             </button>
           )}
@@ -487,14 +487,14 @@ export function NoteEditor({
               className="flex items-center gap-1.5 mb-4 text-xs text-muted-foreground/30 hover:text-muted-foreground transition-colors cursor-pointer"
             >
               <Plus className="size-3" />
-              Add metadata
+              メタデータを追加
             </button>
           )}
           {metaExpanded && <div className="mb-6 space-y-0.5">
             <div className="flex items-center h-8">
               <div className="flex items-center gap-2 w-24 shrink-0">
                 <CalendarIcon className="size-3.5 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">date</span>
+                <span className="text-sm text-muted-foreground">日付</span>
               </div>
               <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
@@ -504,7 +504,7 @@ export function NoteEditor({
                       date ? 'text-foreground' : 'text-muted-foreground/40'
                     )}
                   >
-                    {dateValue ? format(dateValue, 'PPP') : 'Pick a date'}
+                    {dateValue ? format(dateValue, 'PPP') : '日付を選択'}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -554,7 +554,7 @@ export function NoteEditor({
               className="flex items-center gap-1.5 h-7 text-sm text-muted-foreground/30 hover:text-muted-foreground transition-colors cursor-pointer"
             >
               <ChevronUp className="size-3.5" />
-              <span>Collapse</span>
+              <span>折りたたむ</span>
             </button>
           </div>}
 
@@ -562,7 +562,7 @@ export function NoteEditor({
             <EditorContent editor={editor} />
           ) : (
             <div className="flex min-h-[240px] items-center justify-center">
-              <span className="text-sm text-muted-foreground">Loading note...</span>
+              <span className="text-sm text-muted-foreground">ノートを読み込み中...</span>
             </div>
           )}
         </div>
@@ -573,10 +573,10 @@ export function NoteEditor({
         embedded ? 'px-4 border-t border-border' : 'px-5 bg-background',
       )}>
         <span className="text-[10px] text-muted-foreground mr-3">
-          {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : ''}
+          {saveStatus === 'saving' ? '保存中...' : saveStatus === 'saved' ? '保存済み' : ''}
         </span>
         <span className="text-[10px] text-muted-foreground tabular-nums">
-          {wordCount} {wordCount === 1 ? 'word' : 'words'}
+          {wordCount} 文字
         </span>
       </div>
     </div>

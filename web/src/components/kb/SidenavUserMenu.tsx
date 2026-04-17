@@ -44,21 +44,21 @@ export function SidenavUserMenu() {
       <DropdownMenuContent align="start" side="top" className="w-48">
         <DropdownMenuItem onClick={() => router.push('/settings')}>
           <Settings className="mr-2 h-4 w-4" />
-          Settings
+          設定
         </DropdownMenuItem>
         {mounted && (
           <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
             {theme === 'dark' ? (
-              <><Sun className="mr-2 h-4 w-4" />Light Mode</>
+              <><Sun className="mr-2 h-4 w-4" />ライトモード</>
             ) : (
-              <><Moon className="mr-2 h-4 w-4" />Dark Mode</>
+              <><Moon className="mr-2 h-4 w-4" />ダークモード</>
             )}
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
-          Sign Out
+          ログアウト
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -21,7 +21,7 @@ function OAuthConsentContent() {
 
   React.useEffect(() => {
     if (!authorizationId) {
-      setError('Missing authorization_id')
+      setError('authorization_id がありません')
       setLoading(false)
       return
     }
@@ -59,10 +59,10 @@ function OAuthConsentContent() {
       if (redirectUrl) {
         window.location.href = redirectUrl
       } else {
-        setSuccess('Access granted successfully.')
+        setSuccess('アクセスを許可しました。')
       }
     } catch (err: any) {
-      setError(err?.message || 'Failed to approve authorization.')
+      setError(err?.message || '認可の許可に失敗しました。')
     } finally {
       setSubmitting(false)
     }
@@ -80,10 +80,10 @@ function OAuthConsentContent() {
       if (redirectUrl) {
         window.location.href = redirectUrl
       } else {
-        setSuccess('Access denied.')
+        setSuccess('アクセスを拒否しました。')
       }
     } catch (err: any) {
-      setError(err?.message || 'Failed to deny authorization.')
+      setError(err?.message || '認可の拒否に失敗しました。')
     } finally {
       setSubmitting(false)
     }
@@ -105,7 +105,7 @@ function OAuthConsentContent() {
             <Check className="size-5 text-green-600 dark:text-green-400" />
           </div>
           <h1 className="text-lg font-semibold mb-2">{success}</h1>
-          <p className="text-sm text-muted-foreground">You can close this window.</p>
+          <p className="text-sm text-muted-foreground">このウィンドウを閉じて構いません。</p>
         </div>
       </div>
     )
@@ -116,7 +116,7 @@ function OAuthConsentContent() {
       <div className="min-h-svh flex items-center justify-center bg-background p-8">
         <div className="text-center max-w-sm">
           <X className="size-10 text-destructive mx-auto mb-4" />
-          <h1 className="text-lg font-semibold mb-2">Authorization Error</h1>
+          <h1 className="text-lg font-semibold mb-2">認可エラー</h1>
           <p className="text-sm text-muted-foreground">{error}</p>
         </div>
       </div>
@@ -125,7 +125,7 @@ function OAuthConsentContent() {
 
   const rawName = details?.client?.name || ''
   const isClaude = rawName.toLowerCase().includes('claude') || rawName.toLowerCase().includes('anthropic')
-  const clientName = isClaude ? 'Claude' : rawName || 'An MCP client'
+  const clientName = isClaude ? 'Claude' : rawName || 'MCP クライアント'
 
   return (
     <div className="min-h-svh flex items-center justify-center bg-background p-8">
@@ -134,10 +134,10 @@ function OAuthConsentContent() {
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4">
             <Shield className="size-5 text-foreground" />
           </div>
-          <h1 className="text-xl font-semibold tracking-tight">Connect {clientName}</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{clientName} を接続</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{clientName}</span> wants to connect
-            to your LLM Wiki as an MCP server.
+            <span className="font-medium text-foreground">{clientName}</span> が
+            MCP サーバーとしてあなたの LLM Wiki に接続しようとしています。
           </p>
         </div>
 
@@ -148,23 +148,23 @@ function OAuthConsentContent() {
         )}
 
         <div className="rounded-lg border border-border p-4 mb-6">
-          <p className="text-sm font-medium mb-2">{clientName} will be able to:</p>
+          <p className="text-sm font-medium mb-2">{clientName} に許可される操作:</p>
           <ul className="space-y-1.5 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
               <span className="text-green-500 mt-0.5">&#10003;</span>
-              Read your uploaded documents and sources
+              アップロード済みのドキュメントとソースを読む
             </li>
             <li className="flex items-start gap-2">
               <span className="text-green-500 mt-0.5">&#10003;</span>
-              Search across your knowledge bases
+              ナレッジベース全体を検索する
             </li>
             <li className="flex items-start gap-2">
               <span className="text-green-500 mt-0.5">&#10003;</span>
-              Create, edit, and maintain wiki pages
+              Wiki ページを作成・編集・保守する
             </li>
             <li className="flex items-start gap-2">
               <span className="text-green-500 mt-0.5">&#10003;</span>
-              Delete documents and wiki pages
+              ドキュメントと Wiki ページを削除する
             </li>
           </ul>
         </div>
@@ -175,7 +175,7 @@ function OAuthConsentContent() {
             disabled={submitting}
             className="flex-1 rounded-lg border border-input bg-background px-4 py-2.5 text-sm font-medium hover:bg-accent transition-colors cursor-pointer disabled:opacity-50"
           >
-            Deny
+            拒否
           </button>
           <button
             onClick={handleApprove}
@@ -183,12 +183,12 @@ function OAuthConsentContent() {
             className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-foreground text-background px-4 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
           >
             {submitting && <Loader2 size={14} className="animate-spin" />}
-            Approve
+            許可
           </button>
         </div>
 
         <p className="mt-4 text-[11px] text-center text-muted-foreground/50">
-          You can revoke access at any time from Settings.
+          アクセス権は設定画面からいつでも取り消せます。
         </p>
       </div>
     </div>

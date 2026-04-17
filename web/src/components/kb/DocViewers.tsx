@@ -44,14 +44,14 @@ function ErrorMessage({ message }: { message: string }) {
 
 export function PdfDocViewer({ documentId, title }: { documentId: string; title: string }) {
   const { url, error } = useDocumentUrl(documentId)
-  if (error) return <ErrorMessage message="Failed to load PDF" />
+  if (error) return <ErrorMessage message="PDF の読み込みに失敗しました" />
   if (!url) return <LoadingSpinner />
   return <PdfViewer fileUrl={url} title={title} />
 }
 
 export function ImageViewer({ documentId, title }: { documentId: string; title: string }) {
   const { url, error } = useDocumentUrl(documentId)
-  if (error) return <ErrorMessage message="Failed to load image" />
+  if (error) return <ErrorMessage message="画像の読み込みに失敗しました" />
   if (!url) return <LoadingSpinner />
 
   return (
@@ -69,7 +69,7 @@ export function ImageViewer({ documentId, title }: { documentId: string; title: 
 
 export function HtmlDocViewer({ documentId, title }: { documentId: string; title: string }) {
   const { url, error } = useDocumentUrl(documentId)
-  if (error) return <ErrorMessage message="Failed to load HTML" />
+  if (error) return <ErrorMessage message="HTML の読み込みに失敗しました" />
   if (!url) return <LoadingSpinner />
 
   return (
@@ -96,7 +96,7 @@ export function ContentViewer({ documentId, title, fileType }: { documentId: str
     return () => { cancelled = true }
   }, [documentId, token])
 
-  if (error) return <ErrorMessage message="Failed to load content" />
+  if (error) return <ErrorMessage message="内容の読み込みに失敗しました" />
   if (content === null) return <LoadingSpinner />
 
   const isHtml = fileType === 'html' || fileType === 'htm'
@@ -132,7 +132,7 @@ export function UnsupportedViewer({ title }: { title: string }) {
       </div>
       <div className="text-center">
         <h1 className="text-lg font-medium">{title}</h1>
-        <p className="text-xs text-muted-foreground mt-2">File viewer coming soon</p>
+        <p className="text-xs text-muted-foreground mt-2">このファイル形式のビューアは準備中です</p>
       </div>
     </div>
   )
@@ -144,7 +144,7 @@ export function ProcessingViewer({ title }: { title: string }) {
       <Loader2 className="size-8 animate-spin text-muted-foreground" />
       <div className="text-center">
         <h1 className="text-lg font-medium">{title}</h1>
-        <p className="text-xs text-muted-foreground mt-2">Processing document...</p>
+        <p className="text-xs text-muted-foreground mt-2">ドキュメントを処理中...</p>
       </div>
     </div>
   )
@@ -158,7 +158,7 @@ export function FailedViewer({ title, errorMessage }: { title: string; errorMess
       </div>
       <div className="text-center">
         <h1 className="text-lg font-medium">{title}</h1>
-        <p className="text-xs text-destructive mt-2">Processing failed</p>
+        <p className="text-xs text-destructive mt-2">処理に失敗しました</p>
         {errorMessage && (
           <p className="text-xs text-muted-foreground mt-1 max-w-sm">{errorMessage}</p>
         )}

@@ -86,7 +86,7 @@ function DatePropertyEditor({
               value ? 'text-foreground' : 'text-muted-foreground/40'
             )}
           >
-            {dateObj ? format(dateObj, 'PPP') : 'Pick a date'}
+            {dateObj ? format(dateObj, 'PPP') : '日付を選択'}
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -148,7 +148,7 @@ function SelectPropertyEditor({
             value ? 'text-foreground' : 'text-muted-foreground/40'
           )}
         >
-          {value || 'Select...'}
+          {value || '選択...'}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-48 p-1" align="start">
@@ -169,7 +169,7 @@ function SelectPropertyEditor({
               }
             }
           }}
-          placeholder="Search or add..."
+          placeholder="検索または追加..."
           className="w-full text-sm bg-transparent border-none outline-none px-2 py-1.5 placeholder:text-muted-foreground/40"
           autoFocus
         />
@@ -179,7 +179,7 @@ function SelectPropertyEditor({
               onClick={() => { onChange(null); setOpen(false); setInput('') }}
               className="w-full text-left text-sm px-2 py-1.5 rounded-sm hover:bg-accent text-muted-foreground/60 cursor-pointer"
             >
-              Clear
+              クリア
             </button>
           )}
           {filtered.map((opt) => (
@@ -201,7 +201,7 @@ function SelectPropertyEditor({
               className="w-full text-left text-sm px-2 py-1.5 rounded-sm hover:bg-accent text-muted-foreground cursor-pointer"
             >
               <Plus className="size-3 inline mr-1.5" />
-              Create &ldquo;{input.trim()}&rdquo;
+              &ldquo;{input.trim()}&rdquo; を作成
             </button>
           )}
         </div>
@@ -226,7 +226,7 @@ export function PropertyValueEditor({
           type="text"
           value={(property.value as string) ?? ''}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Empty"
+          placeholder="未入力"
           className="text-sm text-foreground bg-transparent border-none outline-none flex-1 h-7 px-1.5 placeholder:text-muted-foreground/30"
         />
       )
@@ -236,7 +236,7 @@ export function PropertyValueEditor({
           type="number"
           value={property.value != null ? String(property.value) : ''}
           onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
-          placeholder="Empty"
+          placeholder="未入力"
           className="text-sm text-foreground bg-transparent border-none outline-none flex-1 h-7 px-1.5 placeholder:text-muted-foreground/30 [&::-webkit-inner-spin-button]:appearance-none"
         />
       )
@@ -309,7 +309,7 @@ export function TagsRow({
     <div className="flex items-start min-h-8">
       <div className="flex items-center gap-2 w-24 shrink-0 h-8">
         <Tag className="size-3.5 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">tags</span>
+        <span className="text-sm text-muted-foreground">タグ</span>
       </div>
       <div className="flex-1 min-w-0 relative">
         <div
@@ -338,7 +338,7 @@ export function TagsRow({
             onChange={(e) => onTagInputChange(e.target.value)}
             onKeyDown={onTagKeyDown}
             onBlur={onAddTag}
-            placeholder={tags.length === 0 ? 'Add tags...' : '+'}
+            placeholder={tags.length === 0 ? 'タグを追加...' : '+'}
             className="text-sm bg-transparent border-none outline-none text-muted-foreground placeholder:text-muted-foreground/30 w-16 shrink-0"
           />
         </div>
@@ -403,24 +403,24 @@ export function AddPropertyButton({ onAdd }: { onAdd: (type: PropertyType) => vo
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-2 h-7 text-sm text-muted-foreground/40 hover:text-muted-foreground transition-colors cursor-pointer">
           <Plus className="size-3.5" />
-          <span>Add property</span>
+          <span>プロパティを追加</span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         <DropdownMenuItem onClick={() => onAdd('text')}>
-          <Type className="size-4" />Text
+          <Type className="size-4" />テキスト
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onAdd('number')}>
-          <Hash className="size-4" />Number
+          <Hash className="size-4" />数値
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onAdd('date')}>
-          <CalendarIcon className="size-4" />Date
+          <CalendarIcon className="size-4" />日付
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onAdd('checkbox')}>
-          <CheckSquare className="size-4" />Checkbox
+          <CheckSquare className="size-4" />チェックボックス
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onAdd('select')}>
-          <List className="size-4" />Select
+          <List className="size-4" />選択
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onAdd('url')}>
           <LinkIcon className="size-4" />URL

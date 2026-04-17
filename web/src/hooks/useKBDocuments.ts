@@ -30,8 +30,8 @@ export function useKBDocuments(knowledgeBaseId: string) {
       .then(({ data, error }) => {
         if (cancelled) return
         if (error) {
-          console.error('Failed to load documents:', error)
-          toast.error('Failed to load documents')
+          console.error('ドキュメントの読み込みに失敗しました:', error)
+          toast.error('ドキュメントの読み込みに失敗しました')
           setDocuments([])
         } else {
           setDocuments((data as DocumentListItem[]) ?? [])

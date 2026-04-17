@@ -43,9 +43,9 @@ export function WikiSelector({ kbName }: { kbName: string }) {
         </PopoverTrigger>
         <PopoverContent className="w-52 p-0" align="start">
           <Command>
-            <CommandInput placeholder="Search wikis..." />
+            <CommandInput placeholder="Wiki を検索..." />
             <CommandList>
-              <CommandEmpty>No wikis found.</CommandEmpty>
+              <CommandEmpty>Wiki が見つかりません。</CommandEmpty>
               {knowledgeBases.map((kb) => (
                 <CommandItem
                   key={kb.id}
@@ -68,7 +68,7 @@ export function WikiSelector({ kbName }: { kbName: string }) {
                 }}
               >
                 <Plus className="size-3.5 mr-2" />
-                Create Wiki
+                Wiki を作成
               </CommandItem>
             </CommandList>
           </Command>
@@ -78,13 +78,13 @@ export function WikiSelector({ kbName }: { kbName: string }) {
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create wiki</DialogTitle>
+            <DialogTitle>Wiki を作成</DialogTitle>
           </DialogHeader>
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-            placeholder="My Research"
+            placeholder="マイリサーチ"
             className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
             autoFocus
           />
@@ -94,7 +94,7 @@ export function WikiSelector({ kbName }: { kbName: string }) {
               disabled={creating || !newName.trim()}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer"
             >
-              {creating ? 'Creating...' : 'Create'}
+              {creating ? '作成中...' : '作成'}
             </button>
           </DialogFooter>
         </DialogContent>

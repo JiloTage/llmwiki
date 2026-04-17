@@ -10,14 +10,14 @@ import { ArrowRight, BookOpen, FileText, PenTool, Search, GitBranch } from 'luci
 const ease: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 const WIKI_TREE = [
-  { label: 'Overview', active: true, depth: 0 },
-  { label: 'Concepts', depth: 0, folder: true },
-  { label: 'Attention Mechanisms', depth: 1 },
-  { label: 'Scaling Laws', depth: 1 },
-  { label: 'Entities', depth: 0, folder: true },
-  { label: 'Transformer Architecture', depth: 1 },
-  { label: 'Sources', depth: 0, folder: true },
-  { label: 'Log', depth: 0 },
+  { label: '概要', active: true, depth: 0 },
+  { label: '概念', depth: 0, folder: true },
+  { label: 'アテンション機構', depth: 1 },
+  { label: 'スケーリング則', depth: 1 },
+  { label: 'エンティティ', depth: 0, folder: true },
+  { label: 'Transformer アーキテクチャ', depth: 1 },
+  { label: 'ソース', depth: 0, folder: true },
+  { label: 'ログ', depth: 0 },
 ]
 
 export default function LandingPage() {
@@ -50,13 +50,13 @@ export default function LandingPage() {
             href="/login"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Sign in
+            ログイン
           </Link>
           <Link
             href="/signup"
             className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-foreground text-background px-4 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity"
           >
-            Get started
+            はじめる
           </Link>
         </div>
       </nav>
@@ -70,7 +70,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8, ease }}
           >
             <p className="text-sm text-muted-foreground mb-4">
-              Open-source implementation of{' '}
+              オープンソース実装版の{' '}
               <Link
                 href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f"
                 className="text-foreground underline underline-offset-2 decoration-foreground/30 hover:decoration-foreground transition-colors"
@@ -89,7 +89,7 @@ export default function LandingPage() {
             transition={{ duration: 0.8, delay: 0.12, ease }}
             className="mt-6 text-base sm:text-lg text-muted-foreground max-w-md mx-auto leading-relaxed"
           >
-            Your LLM compiles and maintains a structured wiki from raw&nbsp;sources.
+            生のソースから、LLM が構造化された Wiki を自動で構築し、更新し続けます。
           </motion.p>
 
           <motion.div
@@ -102,7 +102,7 @@ export default function LandingPage() {
               href="/signup"
               className="inline-flex items-center gap-2 rounded-full bg-foreground text-background px-6 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
             >
-              Get started
+              はじめる
               <ArrowRight className="size-3.5 opacity-60" />
             </Link>
             <Link
@@ -143,7 +143,7 @@ export default function LandingPage() {
               <div className="w-52 shrink-0 border-r border-border p-3 hidden sm:block">
                 <div className="flex items-center gap-2 px-2 py-1.5 mb-2">
                   <Search className="size-3 text-muted-foreground/30" />
-                  <span className="text-xs text-muted-foreground/30">Search wiki...</span>
+                  <span className="text-xs text-muted-foreground/30">Wiki を検索...</span>
                 </div>
                 <div className="space-y-0.5">
                   {WIKI_TREE.map((item, i) => (
@@ -170,25 +170,25 @@ export default function LandingPage() {
               {/* Content */}
               <div className="flex-1 p-8 sm:p-10">
                 <div className="max-w-lg">
-                  <h2 className="text-xl font-semibold tracking-tight mb-1">Overview</h2>
+                  <h2 className="text-xl font-semibold tracking-tight mb-1">概要</h2>
                   <p className="text-xs text-muted-foreground mb-6">
-                    12 sources &middot; Last updated 2 hours ago
+                    12 ソース &middot; 2 時間前に更新
                   </p>
                   <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-                    This wiki tracks research on transformer architectures and their scaling properties.
-                    It synthesizes findings from <span className="font-medium text-foreground">12 sources</span> across 47 pages.
+                    この Wiki は Transformer アーキテクチャとそのスケーリング特性に関する研究を追跡しています。
+                    <span className="font-medium text-foreground">12 件のソース</span>からの知見を 47 ページに整理しています。
                   </p>
-                  <h3 className="text-sm font-semibold mt-5 mb-2">Key Findings</h3>
+                  <h3 className="text-sm font-semibold mt-5 mb-2">主要な発見</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-                    The relationship between model size and performance follows predictable{' '}
-                    <span className="font-medium text-foreground">scaling laws</span> &mdash;
-                    loss decreases as a power law of compute, dataset size, and parameter count.
+                    モデルサイズと性能の関係は予測可能な
+                    <span className="font-medium text-foreground">スケーリング則</span>
+                    に従い、損失は計算量・データセットサイズ・パラメータ数に対するべき乗則で減少します。
                   </p>
-                  <h3 className="text-sm font-semibold mt-5 mb-2">Recent Updates</h3>
+                  <h3 className="text-sm font-semibold mt-5 mb-2">最近の更新</h3>
                   <ul className="space-y-1 ml-4">
-                    <li className="text-sm text-muted-foreground list-disc">Added analysis of sparse attention variants</li>
-                    <li className="text-sm text-muted-foreground list-disc">Updated scaling laws with new benchmarks</li>
-                    <li className="text-sm text-muted-foreground list-disc">Flagged contradiction between Chen et al. and Wei et al.</li>
+                    <li className="text-sm text-muted-foreground list-disc">疎な attention 変種の分析を追加</li>
+                    <li className="text-sm text-muted-foreground list-disc">新しいベンチマークでスケーリング則を更新</li>
+                    <li className="text-sm text-muted-foreground list-disc">Chen らと Wei らの矛盾を指摘</li>
                   </ul>
                 </div>
               </div>
@@ -210,9 +210,9 @@ export default function LandingPage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-14"
           >
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Three layers</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">3 つのレイヤー</h2>
             <p className="mt-3 text-muted-foreground max-w-md mx-auto">
-              You rarely ever write the wiki yourself &mdash; the wiki is the domain of the LLM.
+              Wiki を人が直接書く場面はほとんどありません。Wiki は LLM が担う領域です。
             </p>
           </motion.div>
 
@@ -220,18 +220,18 @@ export default function LandingPage() {
             {[
               {
                 icon: FileText,
-                title: 'Raw Sources',
-                body: 'Articles, papers, notes, transcripts. Your immutable source of truth. The LLM reads from them but never modifies them.',
+                title: '生のソース',
+                body: '記事、論文、ノート、文字起こし。変更されない一次情報です。LLM はこれを読みますが、書き換えはしません。',
               },
               {
                 icon: BookOpen,
-                title: 'The Wiki',
-                body: 'LLM-generated markdown pages with summaries, entity pages, and cross-references. The LLM owns this layer. You read it; the LLM writes it.',
+                title: 'Wiki',
+                body: '要約、エンティティページ、相互参照を含む LLM 生成の Markdown ページ群です。このレイヤーは LLM が管理します。',
               },
               {
                 icon: PenTool,
-                title: 'The Schema',
-                body: 'A config file that tells the LLM how the wiki is structured, what conventions to follow, and what workflows to run on ingest.',
+                title: 'スキーマ',
+                body: 'Wiki の構造、従うべき規約、取り込み時のワークフローを LLM に伝える設定ファイルです。',
               },
             ].map((item, i) => (
               <motion.div
@@ -264,7 +264,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6 }}
             className="text-center mb-14"
           >
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">How it works</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">仕組み</h2>
           </motion.div>
 
           <div className="grid sm:grid-cols-3 gap-10 sm:gap-8">
@@ -277,12 +277,12 @@ export default function LandingPage() {
               {
                 step: '02',
                 title: 'Query',
-                body: 'Ask complex questions against the compiled wiki. Knowledge is already synthesized — not re-derived from raw chunks each time. Good answers get filed back as new pages, so your explorations compound.',
+                body: '統合済みの Wiki に対して複雑な質問を投げられます。知識は毎回生データから再導出されるのではなく、すでに整理済みです。良い答えは新しいページとして蓄積され、探索が資産になります。',
               },
               {
                 step: '03',
                 title: 'Lint',
-                body: 'Run health checks over the wiki. Find inconsistent data, stale claims, orphan pages, missing cross-references. The LLM suggests new questions to ask and new sources to look for.',
+                body: 'Wiki 全体に健全性チェックをかけ、一貫しないデータ、古い主張、孤立ページ、欠けた相互参照を見つけます。LLM は次に調べるべき問いや追加すべきソースも提案します。',
               },
             ].map((item, i) => (
               <motion.div
@@ -334,15 +334,15 @@ export default function LandingPage() {
           transition={{ duration: 0.6 }}
           className="max-w-md mx-auto text-center"
         >
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">Start building your wiki</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">Wiki を作り始める</h2>
           <p className="text-muted-foreground mb-8">
-            An incredible product instead of a hacky collection of scripts.
+            寄せ集めのスクリプトではなく、実用的なプロダクトとして使えます。
           </p>
           <Link
             href="/signup"
             className="inline-flex items-center gap-2 rounded-full bg-foreground text-background px-7 py-3 text-sm font-medium hover:opacity-90 transition-opacity"
           >
-            Get started free
+            無料ではじめる
             <ArrowRight className="size-3.5 opacity-60" />
           </Link>
         </motion.div>
@@ -351,7 +351,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border px-6 lg:px-10 py-6 flex items-center justify-between text-xs text-muted-foreground/50">
         <span>LLM Wiki</span>
-        <span>Free &amp; open source &middot; Apache 2.0</span>
+        <span>無料・オープンソース &middot; Apache 2.0</span>
       </footer>
     </div>
   )

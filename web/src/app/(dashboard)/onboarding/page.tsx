@@ -32,7 +32,7 @@ export default function OnboardingPage() {
   React.useEffect(() => {
     if (user) {
       const name = user.email.split('@')[0]
-      setWikiName(`${name.charAt(0).toUpperCase() + name.slice(1)}'s Wiki`)
+      setWikiName(`${name.charAt(0).toUpperCase() + name.slice(1)} の Wiki`)
     }
   }, [user])
 
@@ -69,7 +69,6 @@ export default function OnboardingPage() {
 
   return (
     <div className="h-full min-h-0 flex flex-col bg-background">
-      {/* Progress bar */}
       <div className="shrink-0 px-8 pt-8 pb-0">
         <div className="max-w-lg mx-auto flex gap-1.5">
           {STEPS.map((s, i) => (
@@ -84,27 +83,25 @@ export default function OnboardingPage() {
         </div>
       </div>
 
-      {/* Step content */}
       <div className="flex-1 min-h-0 flex items-center justify-center p-8">
         <div className="w-full max-w-lg">
-
           {step === 'welcome' && (
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-foreground mb-8">
                 <BookOpen size={28} className="text-background" />
               </div>
               <h1 className="text-3xl font-bold tracking-tight">
-                Welcome to LLM Wiki
+                LLM Wiki へようこそ
               </h1>
               <p className="mt-4 text-base text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                Your LLM compiles and maintains a structured wiki from your raw sources.
+                生のソースから、LLM が構造化された Wiki を構築し、継続的に更新します。
               </p>
 
               <div className="grid grid-cols-3 gap-3 mt-10 text-left">
                 {[
-                  { icon: FileText, title: 'Sources', desc: 'PDFs, notes, transcripts' },
-                  { icon: BookOpen, title: 'Wiki', desc: 'Auto-generated pages' },
-                  { icon: PenTool, title: 'Tools', desc: 'Search, read, write via MCP' },
+                  { icon: FileText, title: 'ソース', desc: 'PDF、ノート、文字起こし' },
+                  { icon: BookOpen, title: 'Wiki', desc: '自動生成されるページ' },
+                  { icon: PenTool, title: 'ツール', desc: 'MCP 経由で検索・読取・書込' },
                 ].map((item) => (
                   <div key={item.title} className="rounded-xl border border-border p-4 bg-card">
                     <item.icon className="size-4 text-muted-foreground mb-2.5" strokeWidth={1.5} />
@@ -118,7 +115,7 @@ export default function OnboardingPage() {
                 onClick={() => setStep('create')}
                 className="mt-10 inline-flex items-center gap-2 rounded-full bg-foreground text-background px-8 py-3 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
               >
-                Get started
+                はじめる
                 <ArrowRight className="size-3.5" />
               </button>
             </div>
@@ -131,14 +128,14 @@ export default function OnboardingPage() {
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer mb-8"
               >
                 <ArrowLeft className="size-3" />
-                Back
+                戻る
               </button>
 
               <h1 className="text-2xl font-bold tracking-tight">
-                Name your wiki
+                Wiki に名前を付ける
               </h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                This is your knowledge space. You can rename it anytime.
+                これはあなたの知識空間です。名前はいつでも変更できます。
               </p>
 
               <div className="mt-8">
@@ -147,7 +144,7 @@ export default function OnboardingPage() {
                   value={wikiName}
                   onChange={(e) => setWikiName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateWiki()}
-                  placeholder="My Research"
+                  placeholder="マイリサーチ"
                   className="w-full rounded-xl border border-border bg-card px-4 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-foreground/20 transition-shadow"
                   autoFocus
                 />
@@ -159,9 +156,9 @@ export default function OnboardingPage() {
                 className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-full bg-foreground text-background px-8 py-3 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40"
               >
                 {creating ? (
-                  <><Loader2 size={15} className="animate-spin" /> Creating...</>
+                  <><Loader2 size={15} className="animate-spin" /> 作成中...</>
                 ) : (
-                  <>Create wiki <ArrowRight className="size-3.5" /></>
+                  <>Wiki を作成 <ArrowRight className="size-3.5" /></>
                 )}
               </button>
             </div>
@@ -174,18 +171,17 @@ export default function OnboardingPage() {
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer mb-8"
               >
                 <ArrowLeft className="size-3" />
-                Back
+                戻る
               </button>
 
               <h1 className="text-2xl font-bold tracking-tight">
-                Connect Claude
+                Claude を接続
               </h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Add LLM Wiki as a connector so Claude can read and write to your wiki.
+                LLM Wiki をコネクタとして追加すると、Claude があなたの Wiki を読み書きできます。
               </p>
 
               <div className="mt-8 space-y-6">
-                {/* MCP URL */}
                 <div className="flex items-center gap-2">
                   <code className="flex-1 text-sm font-mono bg-muted rounded-xl px-4 py-3 border border-border select-all truncate">
                     {MCP_URL}
@@ -199,22 +195,21 @@ export default function OnboardingPage() {
                         : 'bg-foreground text-background hover:opacity-90'
                     )}
                   >
-                    {urlCopied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
+                    {urlCopied ? <><Check size={14} /> コピー済み</> : <><Copy size={14} /> コピー</>}
                   </button>
                 </div>
 
-                {/* Steps */}
                 <div className="rounded-xl border border-border bg-card p-5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/50 mb-3">
-                    In Claude
+                    Claude 側の手順
                   </p>
                   <ol className="space-y-2.5">
                     {[
-                      <>Open <strong>Settings</strong></>,
-                      <>Go to <strong>Connectors</strong></>,
-                      <>Click <strong>Add custom connector</strong></>,
-                      'Paste the URL above and approve access',
-                      'Sign in with your account when prompted',
+                      <><strong>Settings</strong> を開く</>,
+                      <><strong>Connectors</strong> に移動する</>,
+                      <><strong>Add custom connector</strong> をクリックする</>,
+                      '上の URL を貼り付けてアクセスを許可する',
+                      '案内に従ってアカウントでサインインする',
                     ].map((text, i) => (
                       <li key={i} className="flex items-start gap-3 text-sm">
                         <span className="flex items-center justify-center w-5 h-5 rounded-full bg-muted text-[10px] font-bold text-muted-foreground shrink-0 mt-0.5">
@@ -232,7 +227,7 @@ export default function OnboardingPage() {
                   onClick={() => setStep('done')}
                   className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-foreground text-background px-8 py-3 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
                 >
-                  Continue
+                  続ける
                   <ArrowRight className="size-3.5" />
                 </button>
               </div>
@@ -241,7 +236,7 @@ export default function OnboardingPage() {
                 onClick={() => setStep('done')}
                 className="mt-3 w-full text-center text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
               >
-                Skip — I&apos;ll set this up later
+                スキップして後で設定する
               </button>
             </div>
           )}
@@ -252,17 +247,17 @@ export default function OnboardingPage() {
                 <Check size={28} className="text-green-600 dark:text-green-400" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight">
-                You&apos;re all set
+                準備ができました
               </h1>
               <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                Upload some sources to your wiki, then ask Claude to compile them into structured pages.
+                Wiki にソースをアップロードし、Claude に構造化されたページへまとめてもらってください。
               </p>
 
               <button
                 onClick={handleComplete}
                 className="mt-10 inline-flex items-center justify-center gap-2 rounded-full bg-foreground text-background px-8 py-3 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
               >
-                Go to my wiki
+                自分の Wiki へ移動
                 <ArrowRight className="size-3.5" />
               </button>
 
@@ -274,7 +269,7 @@ export default function OnboardingPage() {
                   className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <ExternalLink size={12} />
-                  Open Claude
+                  Claude を開く
                 </a>
               </div>
             </div>

@@ -215,13 +215,13 @@ export function KBSidenav({
           className="flex items-center gap-2 flex-1 px-2.5 py-1.5 text-xs text-muted-foreground/50 hover:text-muted-foreground border border-border hover:bg-accent rounded-md transition-colors cursor-pointer"
         >
           <SearchIcon className="size-3" />
-          <span className="flex-1 text-left">Search</span>
+          <span className="flex-1 text-left">検索</span>
           <kbd className="text-[10px] text-muted-foreground/30 bg-muted px-1 rounded">⌘K</kbd>
         </button>
         <button
           onClick={onUpload}
           className="flex items-center justify-center px-2.5 py-1.5 text-muted-foreground/50 hover:text-muted-foreground border border-border hover:bg-accent rounded-md transition-colors cursor-pointer"
-          title="Upload files"
+          title="ファイルをアップロード"
         >
           <Upload className="size-3" />
         </button>
@@ -229,9 +229,9 @@ export function KBSidenav({
 
       {/* Search palette */}
       <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <CommandInput placeholder="Search pages and sources..." />
+        <CommandInput placeholder="ページとソースを検索..." />
         <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandEmpty>検索結果がありません。</CommandEmpty>
           {allSearchableItems.some((i) => i.type === 'wiki') && (
             <CommandGroup heading="Wiki">
               {allSearchableItems.filter((i) => i.type === 'wiki').map((item) => (
@@ -250,7 +250,7 @@ export function KBSidenav({
             </CommandGroup>
           )}
           {allSearchableItems.some((i) => i.type === 'source') && (
-            <CommandGroup heading="Sources">
+            <CommandGroup heading="ソース">
               {allSearchableItems.filter((i) => i.type === 'source').map((item) => (
                 <CommandItem
                   key={`source-${item.doc?.id}`}
@@ -270,15 +270,15 @@ export function KBSidenav({
           <CommandGroup heading="Actions">
             <CommandItem onSelect={() => { setSearchOpen(false); onCreateNote() }}>
               <NotepadText className="size-3.5 mr-2 opacity-50" />
-              New Note
+              新しいノート
             </CommandItem>
             <CommandItem onSelect={() => { setSearchOpen(false); setFolderDialogOpen(true) }}>
               <Folder className="size-3.5 mr-2 opacity-50" />
-              New Folder
+              新しいフォルダ
             </CommandItem>
             <CommandItem onSelect={() => { setSearchOpen(false); onUpload() }}>
               <Upload className="size-3.5 mr-2 opacity-50" />
-              Upload Files
+              ファイルをアップロード
             </CommandItem>
           </CommandGroup>
         </CommandList>
@@ -310,14 +310,14 @@ export function KBSidenav({
           ) : (
             <div className="px-2 py-4 text-center">
               <BookOpen className="size-6 text-muted-foreground/20 mx-auto mb-2" />
-              <p className="text-xs text-muted-foreground mb-2">No wiki yet</p>
+              <p className="text-xs text-muted-foreground mb-2">まだ Wiki がありません</p>
               <a
                 href="https://claude.ai"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                Open Claude
+                Claude を開く
                 <ArrowUpRight className="size-3" />
               </a>
             </div>
@@ -341,7 +341,7 @@ export function KBSidenav({
               )}
             />
             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50 group-hover:text-muted-foreground transition-colors">
-              Sources
+              ソース
             </span>
             {sourceDocs.length > 0 && (
               <span className="text-[10px] text-muted-foreground/30 ml-1">
@@ -358,15 +358,15 @@ export function KBSidenav({
             <DropdownMenuContent align="end" side="bottom">
               <DropdownMenuItem onClick={onCreateNote}>
                 <NotepadText className="size-3.5 mr-2" />
-                New Note
+                新しいノート
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setFolderDialogOpen(true)}>
                 <Folder className="size-3.5 mr-2" />
-                New Folder
+                新しいフォルダ
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onUpload}>
                 <Upload className="size-3.5 mr-2" />
-                Upload Files
+                ファイルをアップロード
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -394,13 +394,13 @@ export function KBSidenav({
                 ))
               ) : (
                 <div className="px-2 py-4 text-center">
-                  <p className="text-xs text-muted-foreground/40 mb-2">No sources yet</p>
+                  <p className="text-xs text-muted-foreground/40 mb-2">まだソースがありません</p>
                   <button
                     onClick={onUpload}
                     className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   >
                     <Upload className="size-3" />
-                    Upload files
+                    ファイルをアップロード
                   </button>
                 </div>
               )}
@@ -409,7 +409,7 @@ export function KBSidenav({
                   onClick={() => setAllSourcesOpen(true)}
                   className="w-full px-2 py-1.5 text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer text-center"
                 >
-                  View all {sourceDocs.length} sources
+                  すべてのソース {sourceDocs.length} 件を表示
                 </button>
               )}
             </div>
@@ -442,13 +442,13 @@ export function KBSidenav({
       <Dialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New folder</DialogTitle>
+          <DialogTitle>新しいフォルダ</DialogTitle>
           </DialogHeader>
           <input
             value={folderName}
             onChange={(e) => setFolderName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
-            placeholder="Folder name"
+            placeholder="フォルダ名"
             className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
             autoFocus
           />
@@ -458,7 +458,7 @@ export function KBSidenav({
               disabled={!folderName.trim()}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer"
             >
-              Create
+              作成
             </button>
           </DialogFooter>
         </DialogContent>
@@ -468,7 +468,7 @@ export function KBSidenav({
       <Dialog open={allSourcesOpen} onOpenChange={setAllSourcesOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>All Sources ({sourceDocs.length})</DialogTitle>
+            <DialogTitle>すべてのソース ({sourceDocs.length})</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto -mx-6 px-6">
             <div className="grid grid-cols-1 gap-0.5">
@@ -850,7 +850,7 @@ function PageUsageBar() {
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Page Usage</DialogTitle>
+          <DialogTitle>ページ利用状況</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>

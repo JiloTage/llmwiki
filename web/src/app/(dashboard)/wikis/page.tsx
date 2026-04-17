@@ -19,15 +19,15 @@ import { createClient } from '@/lib/supabase/client'
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return 'Just now'
-  if (minutes < 60) return `${minutes}m ago`
+  if (minutes < 1) return 'たった今'
+  if (minutes < 60) return `${minutes}分前`
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
+  if (hours < 24) return `${hours}時間前`
   const days = Math.floor(hours / 24)
-  if (days < 30) return `${days}d ago`
+  if (days < 30) return `${days}日前`
   const months = Math.floor(days / 30)
-  if (months < 12) return `${months}mo ago`
-  return `${Math.floor(months / 12)}y ago`
+  if (months < 12) return `${months}か月前`
+  return `${Math.floor(months / 12)}年前`
 }
 
 export default function WikisPage() {
@@ -43,9 +43,9 @@ export default function WikisPage() {
   const handleQuickCreate = async () => {
     setCreating(true)
     try {
-      const email = user?.email || 'My'
+      const email = user?.email || 'my'
       const displayName = email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1)
-      const kb = await createKB(`${displayName}'s Wiki`)
+      const kb = await createKB(`${displayName} の Wiki`)
       router.push(`/wikis/${kb.slug}`)
     } catch (err) {
       console.error('Failed to create KB:', err)
@@ -88,10 +88,10 @@ export default function WikisPage() {
                 <BookOpen size={24} className="text-background" />
               </div>
               <h1 className="text-3xl font-bold tracking-tight">
-                Create your first wiki
+                最初の Wiki を作成
               </h1>
               <p className="mt-3 text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
-                Upload sources, connect Claude, and let it compile a structured wiki automatically.
+                ソースをアップロードし、Claude と接続すれば、構造化された Wiki を自動で生成できます。
               </p>
             </div>
 
@@ -99,8 +99,8 @@ export default function WikisPage() {
               {[
                 {
                   step: '1',
-                  title: 'Create a wiki',
-                  desc: 'Name your knowledge space. You can have as many as you need.',
+                  title: 'Wiki を作成',
+                  desc: '知識空間に名前を付けます。必要なだけ作成できます。',
                 },
                 {
                   step: '2',
@@ -130,16 +130,16 @@ export default function WikisPage() {
                 className="inline-flex items-center justify-center gap-2.5 rounded-full bg-foreground text-background px-8 py-3 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
               >
                 {creating ? (
-                  <><Loader2 size={15} className="animate-spin" /> Setting up...</>
+                  <><Loader2 size={15} className="animate-spin" /> 作成中...</>
                 ) : (
-                  <><Plus size={15} /> Get started</>
+                  <><Plus size={15} /> はじめる</>
                 )}
               </button>
               <button
                 onClick={() => setDialogOpen(true)}
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
-                or create with a custom name
+                または名前を指定して作成
               </button>
             </div>
           </div>
@@ -190,7 +190,7 @@ export default function WikisPage() {
                     {stats.length > 0 ? (
                       <span>{stats.join(' \u00B7 ')}</span>
                     ) : (
-                      <span className="text-muted-foreground/30">No sources yet</span>
+                      <span className="text-muted-foreground/30">まだソースがありません</span>
                     )}
                     <span className="ml-auto text-muted-foreground/30 shrink-0">
                       {relativeTime(kb.updated_at)}
@@ -205,7 +205,7 @@ export default function WikisPage() {
               className="flex flex-col items-center justify-center gap-2 p-5 rounded-xl border border-dashed border-border hover:border-primary/50 hover:bg-accent/30 transition-colors cursor-pointer min-h-[112px]"
             >
               <Plus size={16} className="text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">New Wiki</span>
+              <span className="text-xs text-muted-foreground">新しい Wiki</span>
             </button>
           </div>
         </div>
@@ -234,7 +234,7 @@ function PageHeader({ onNew }: { onNew?: () => void }) {
             className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors cursor-pointer"
           >
             <Plus className="size-3" />
-            New
+            新規
           </button>
         )}
         <UserMenu />
@@ -276,16 +276,16 @@ function UserMenu() {
         {mounted && (
           <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
             {theme === 'dark' ? (
-              <><Sun className="mr-2 h-4 w-4" />Light Mode</>
+              <><Sun className="mr-2 h-4 w-4" />ライトモード</>
             ) : (
-              <><Moon className="mr-2 h-4 w-4" />Dark Mode</>
+              <><Moon className="mr-2 h-4 w-4" />ダークモード</>
             )}
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
-          Sign Out
+          ログアウト
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -311,13 +311,13 @@ function CreateWikiDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create wiki</DialogTitle>
+          <DialogTitle>Wiki を作成</DialogTitle>
         </DialogHeader>
         <input
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && onCreate()}
-          placeholder="My Research"
+          placeholder="マイリサーチ"
           className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
           autoFocus
         />
@@ -327,7 +327,7 @@ function CreateWikiDialog({
             disabled={creating || !name.trim()}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer"
           >
-            {creating ? 'Creating...' : 'Create'}
+            {creating ? '作成中...' : '作成'}
           </button>
         </DialogFooter>
       </DialogContent>

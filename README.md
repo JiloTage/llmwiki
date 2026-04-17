@@ -3,91 +3,80 @@
 [![Live Demo](https://img.shields.io/badge/demo-llmwiki.app-blue)](https://llmwiki.app)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)](https://opensource.org/licenses/Apache-2.0)
 
-Free, open-source implementation of [Karpathy's LLM Wiki](https://x.com/karpathy/status/2039805659525644595) ([spec](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)). Available at [llmwiki.app](https://llmwiki.app).
+[Karpathy's LLM Wiki](https://x.com/karpathy/status/2039805659525644595)（[仕様](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)）を実装した、無料のオープンソースプロジェクトです。公開版は [llmwiki.app](https://llmwiki.app) で利用できます。
 
-1. **Upload sources** — PDFs, articles, notes, office docs. Review them in a full document viewer.
-2. **Connect Claude** — via MCP. It reads your sources, writes wiki pages, maintains cross-references and citations.
-3. **The wiki compounds** — every source you add and every question you ask makes it richer. Knowledge is built up, not re-derived.
+1. **ソースをアップロード**: PDF、記事、ノート、Office 文書を追加し、フル機能のドキュメントビューアで確認できます。
+2. **Claude と接続**: MCP 経由で Claude を接続すると、ソースを読み込み、Wiki ページを生成し、相互参照や引用を保守します。
+3. **Wiki が蓄積される**: 追加するソースや投げる質問ごとに Wiki が豊かになり、知識が再利用可能な形で積み上がります。
 
-![LLM Wiki — a compiled wiki page with citations and table of contents](wiki-page.png)
+![LLM Wiki の画面例](wiki-page.png)
 
-### Three Layers
+### 3 つのレイヤー
 
-| Layer | Description |
+| レイヤー | 説明 |
 |-------|-------------|
-| **Raw Sources** | PDFs, articles, notes, transcripts. Your immutable source of truth. The LLM reads them but never modifies them. |
-| **The Wiki** | LLM-generated markdown pages — summaries, entity pages, cross-references, mermaid diagrams, tables. The LLM owns this layer. You read it; the LLM writes it. |
-| **The Tools** | Search, read, and write. Claude connects via MCP and orchestrates the rest. |
+| **生のソース** | PDF、記事、ノート、文字起こしなど。変更されない一次情報であり、LLM は読むだけで書き換えません。 |
+| **Wiki** | 要約、エンティティページ、相互参照、Mermaid 図、表などを含む LLM 生成の Markdown ページ群です。 |
+| **ツール群** | 検索、読み取り、書き込みを担います。Claude は MCP 経由で接続し、全体をオーケストレーションします。 |
 
-### Core Operations
+### 主要な操作
 
-LLM Wiki ships an **MCP server** that Claude.ai connects to directly. Once connected, Claude has tools to search, read, write, and delete across your entire knowledge vault. All operations below happen through Claude — you talk to it, it maintains the wiki.
+LLM Wiki には Claude.ai が直接接続できる **MCP サーバー** が含まれています。接続後、Claude はナレッジボルト全体に対して検索、読み取り、書き込み、削除を行えます。以下の操作はすべて Claude 経由で進みます。
 
-**Ingest** — Drop a source in. Claude reads it, writes a summary, updates entity and concept pages across the wiki, and flags anything that contradicts existing knowledge. A single source might touch 10-15 wiki pages.
+**取り込み**: ソースを追加すると、Claude が読み込み、要約を書き、Wiki 全体のエンティティや概念ページを更新し、既存知識と矛盾する点を指摘します。1 つのソースが 10〜15 ページに影響することもあります。
 
-**Query** — Ask complex questions against the compiled wiki. Knowledge is already synthesized — not re-derived from raw chunks each time. Good answers get filed back as new pages, so your explorations compound.
+**問い合わせ**: すでに統合済みの Wiki に対して複雑な質問を投げられます。知識は毎回生データから再導出されるのではなく整理済みで、良い回答は新規ページとして蓄積されます。
 
-**Lint** — Run health checks. Find inconsistent data, stale claims, orphan pages, missing cross-references. Claude suggests new questions to investigate and new sources to look for.
+**点検**: 健全性チェックを実行し、一貫しないデータ、古い主張、孤立ページ、欠落した相互参照を検出します。Claude は次に調べるべき問いや追加すべきソースも提案します。
 
 ---
 
-## Architecture
+## アーキテクチャ
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Next.js   │────▶│   FastAPI   │────▶│  Supabase   │
-│   Frontend  │     │   Backend   │     │  (Postgres) │
-└─────────────┘     └──────┬──────┘     └─────────────┘
-                           │
-                    ┌──────┴──────┐
-                    │  MCP Server │◀──── Claude
-                    └─────────────┘
-```
-
-| Component | Stack | Responsibilities |
+| コンポーネント | スタック | 役割 |
 |-----------|-------|------------------|
-| **Web** (`web/`) | Next.js 16, React 19, Tailwind, Radix UI | Dashboard, PDF/HTML viewer, wiki renderer, onboarding |
-| **API** (`api/`) | FastAPI, asyncpg, aioboto3 | Auth, uploads (TUS), document processing, OCR (Mistral) |
-| **Converter** (`converter/`) | FastAPI, LibreOffice | Isolated office-to-PDF conversion (non-root, zero AWS creds) |
-| **MCP** (`mcp/`) | MCP SDK, Supabase OAuth | Tools for Claude: `guide`, `search`, `read`, `write`, `delete` |
-| **Database** | Supabase (Postgres + RLS + PGroonga) | Documents, chunks, knowledge bases, users |
-| **Storage** | S3-compatible | Raw uploads, tagged HTML, extracted images |
+| **Web** (`web/`) | Next.js 16, React 19, Tailwind, Radix UI | ダッシュボード、PDF/HTML ビューア、Wiki レンダラ、オンボーディング |
+| **API** (`api/`) | FastAPI, asyncpg, aioboto3 | 認証、アップロード（TUS）、ドキュメント処理、OCR（Mistral） |
+| **Converter** (`converter/`) | FastAPI, LibreOffice | 分離された Office→PDF 変換サービス |
+| **MCP** (`mcp/`) | MCP SDK, Supabase OAuth | Claude 向けツール: `guide`, `search`, `read`, `write`, `delete` |
+| **Database** | Supabase (Postgres + RLS + PGroonga) | ドキュメント、チャンク、ナレッジベース、ユーザー管理 |
+| **Storage** | S3 互換ストレージ | 生ファイル、タグ付き HTML、抽出画像の保存 |
 
 ---
 
-## MCP Tools
+## MCP ツール
 
-Once connected, Claude has full access to your knowledge vault:
+接続後、Claude はナレッジボルト全体にアクセスできます。
 
-| Tool | Description |
+| ツール | 説明 |
 |------|-------------|
-| `guide` | Explains how the wiki works and lists available knowledge bases |
-| `search` | Browse files (`list`) or keyword search with PGroonga ranking (`search`) |
-| `read` | Read documents — PDFs with page ranges, inline images, glob batch reads |
-| `write` | Create wiki pages, edit with `str_replace`, append. SVG and CSV asset support |
-| `delete` | Archive documents by path or glob pattern |
+| `guide` | Wiki の仕組みと利用可能なナレッジベースを説明します |
+| `search` | ファイル一覧の参照や、PGroonga ランキングを使ったキーワード検索を行います |
+| `read` | PDF のページ範囲指定、画像付きの読み取り、glob での一括読み取りに対応します |
+| `write` | Wiki ページの作成、`str_replace` による編集、追記を行います。SVG と CSV アセットにも対応します |
+| `delete` | パスまたは glob パターンでドキュメントをアーカイブします |
 
 ---
 
-## Getting Started
+## はじめ方
 
-The fastest way to try LLM Wiki:
+LLM Wiki を最速で試す手順:
 
-1. **Sign up** at [llmwiki.app](https://llmwiki.app) and create a knowledge base
-2. **Upload sources** — drop in PDFs, notes, articles
-3. **Connect Claude** — go to Settings, copy the MCP config, add it as a connector in Claude.ai
-4. **Start building** — tell Claude to read your sources and compile the wiki
+1. [llmwiki.app](https://llmwiki.app) で **サインアップ** し、ナレッジベースを作成する
+2. **ソースをアップロード** する
+3. **Claude と接続** する: 設定画面で MCP 設定をコピーし、Claude.ai にコネクタとして追加する
+4. **構築を開始** する: Claude にソースを読ませ、Wiki を構築するよう依頼する
 
-That's it. No local setup required.
+ローカルセットアップは不要です。
 
-### Self-Hosting
+### セルフホスト
 
-#### Prerequisites
+#### 前提条件
 
 - Python 3.11+
 - Node.js 20+
-- A [Supabase](https://supabase.com) project (or local Docker setup)
-- An S3-compatible bucket (needed for file uploads)
+- [Supabase](https://supabase.com) プロジェクト、またはローカル Docker 環境
+- S3 互換バケット（ファイルアップロード用）
 
 #### 1. Database
 
@@ -95,7 +84,11 @@ That's it. No local setup required.
 psql $DATABASE_URL -f supabase/migrations/001_initial.sql
 ```
 
-Or use local Docker: `docker compose up -d`
+またはローカル Docker を使う場合:
+
+```bash
+docker compose up -d
+```
 
 #### 2. API
 
@@ -103,7 +96,7 @@ Or use local Docker: `docker compose up -d`
 cd api
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp ../.env.example .env  # edit with your credentials
+cp ../.env.example .env
 uvicorn main:app --reload --port 8000
 ```
 
@@ -125,32 +118,32 @@ cp .env.example .env.local
 npm run dev
 ```
 
-#### 5. Connect Claude
+#### 5. Claude を接続
 
-1. Open **Settings** > **Connectors** in Claude
-2. Add a custom connector pointing to `http://localhost:8080/mcp`
-3. Sign in with your Supabase account when prompted
+1. Claude の **Settings** > **Connectors** を開く
+2. `http://localhost:8080/mcp` を向き先にしたカスタムコネクタを追加する
+3. 案内に従って Supabase アカウントでサインインする
 
-#### Environment Variables
+#### 環境変数
 
 **API** (`api/.env`)
 
-```
+```env
 DATABASE_URL=postgresql://...
 SUPABASE_URL=https://your-ref.supabase.co
-SUPABASE_JWT_SECRET=          # optional, for legacy HS256 projects
-MISTRAL_API_KEY=              # for PDF OCR
+SUPABASE_JWT_SECRET=
+MISTRAL_API_KEY=
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 AWS_REGION=us-east-1
 S3_BUCKET=your-bucket
 APP_URL=http://localhost:3000
-CONVERTER_URL=               # optional, URL of isolated converter service
+CONVERTER_URL=
 ```
 
 **Web** (`web/.env.local`)
 
-```
+```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 NEXT_PUBLIC_API_URL=http://localhost:8000
@@ -159,14 +152,14 @@ NEXT_PUBLIC_MCP_URL=http://localhost:8080/mcp
 
 ---
 
-## Why This Works
+## この構成が機能する理由
 
-The tedious part of maintaining a knowledge base is not the reading or the thinking — it's the bookkeeping. Updating cross-references, keeping summaries current, noting when new data contradicts old claims, maintaining consistency across dozens of pages.
+ナレッジベース運用で面倒なのは、読むことや考えることそのものではなく、保守の細かい帳尻合わせです。相互参照の更新、要約の鮮度維持、新しいデータが古い主張と矛盾したときの検出、複数ページ間の整合性維持などが負担になります。
 
-Humans abandon personal wikis because the maintenance burden grows faster than the value. LLMs don't get bored, don't forget to update a cross-reference, and can touch 15 files in one pass. The wiki stays maintained because the cost of maintenance drops to near zero.
+個人 Wiki が放棄されがちなのは、保守コストの増え方が価値の増え方を上回るからです。LLM は退屈せず、相互参照の更新も忘れず、1 回で多数のファイルに手を入れられます。保守コストがほぼゼロに近づくことで、Wiki を維持し続けられます。
 
-The human's job is to curate sources, direct the analysis, ask good questions, and think about what it all means. The LLM's job is everything else.
+人間の役割はソースを集め、分析の方向を決め、良い問いを立て、意味を考えることです。それ以外の大半を LLM が担います。
 
-## License
+## ライセンス
 
 Apache 2.0
