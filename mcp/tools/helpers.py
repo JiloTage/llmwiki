@@ -1,10 +1,9 @@
-import os
 import logging
+import os
 from fnmatch import fnmatch
 
 import aioboto3
 from mcp.server.fastmcp import Context
-from mcp.server.auth.middleware.auth_context import get_access_token
 
 from config import settings
 from db import scoped_queryrow
@@ -14,22 +13,10 @@ logger = logging.getLogger(__name__)
 MAX_LIST = 50
 MAX_SEARCH = 20
 
+
 def get_user_id(ctx: Context) -> str:
-    local_id = os.environ.get("SUPAVAULT_USER_ID")
-    if local_id:
-        import sys
-        if "local_server" not in sys.modules:
-            raise RuntimeError("SUPAVAULT_USER_ID is set but local_server is not loaded — refusing to bypass auth")
-        return local_id
-
-    access_token = get_access_token()
-    if not access_token:
-        raise RuntimeError("Not authenticated")
-
-    if access_token.client_id:
-        return access_token.client_id
-
-    raise RuntimeError("No user identifier in token")
+    del ctx
+    return os.environ.get("SUPAVAULT_USER_ID") or settings.LOCAL_USER_ID
 
 
 def deep_link(kb_slug: str, path: str, filename: str) -> str:

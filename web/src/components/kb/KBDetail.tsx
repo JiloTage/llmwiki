@@ -765,7 +765,7 @@ export function KBDetail({ kbId, kbName }: Props) {
               documents={documents}
             />
           ) : (
-            <div className="flex flex-col items-center justify-center h-full gap-4 px-6">
+            <div data-testid="empty-wiki-state" className="flex flex-col items-center justify-center h-full gap-4 px-6">
               <BookOpen className="size-10 text-muted-foreground/20" />
               <div className="text-center max-w-sm">
                 <h3 className="text-base font-medium mb-1.5">まだ Wiki がありません</h3>
@@ -776,6 +776,7 @@ export function KBDetail({ kbId, kbName }: Props) {
               <div className="flex items-center gap-3 mt-2">
                 <button
                   onClick={handleUploadClick}
+                  data-testid="empty-wiki-upload"
                   className="inline-flex items-center gap-2 rounded-full bg-foreground text-background px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   <UploadIcon className="size-3.5 opacity-60" />

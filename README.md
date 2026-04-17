@@ -130,8 +130,9 @@ npm run dev
 
 ```env
 DATABASE_URL=postgresql://...
-SUPABASE_URL=https://your-ref.supabase.co
-SUPABASE_JWT_SECRET=
+LOCAL_USER_ID=00000000-0000-4000-8000-000000000001
+LOCAL_USER_EMAIL=local@llmwiki.local
+LOCAL_USER_NAME=Local User
 MISTRAL_API_KEY=
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
@@ -144,10 +145,11 @@ CONVERTER_URL=
 **Web** (`web/.env.local`)
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-ref.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_MCP_URL=http://localhost:8080/mcp
+NEXT_PUBLIC_LOCAL_USER_ID=00000000-0000-4000-8000-000000000001
+NEXT_PUBLIC_LOCAL_USER_EMAIL=local@llmwiki.local
+NEXT_PUBLIC_LOCAL_ACCESS_TOKEN=local-dev-session
 ```
 
 ---

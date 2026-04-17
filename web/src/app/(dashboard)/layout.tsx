@@ -1,16 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { AppShell } from '@/components/layout/AppShell'
 import { AuthProvider } from '@/components/auth/AuthProvider'
+import { AppShell } from '@/components/layout/AppShell'
+import { LOCAL_USER_EMAIL, LOCAL_USER_ID } from '@/lib/local-user'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
-  const user = session.user
-
   return (
-    <AuthProvider userId={user.id} email={user.email!}>
+    <AuthProvider userId={LOCAL_USER_ID} email={LOCAL_USER_EMAIL}>
       <AppShell>{children}</AppShell>
     </AuthProvider>
   )

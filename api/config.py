@@ -5,8 +5,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file="../.env", extra="ignore")
 
     DATABASE_URL: str
-    SUPABASE_URL: str = ""
-    SUPABASE_JWT_SECRET: str = ""
+    LOCAL_USER_ID: str = "00000000-0000-4000-8000-000000000001"
+    LOCAL_USER_EMAIL: str = "local@llmwiki.local"
+    LOCAL_USER_NAME: str = "Local User"
     VOYAGE_API_KEY: str = ""
     TURBOPUFFER_API_KEY: str = ""
     EMBEDDING_MODEL: str = "voyage-4-lite"

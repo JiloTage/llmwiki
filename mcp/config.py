@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=str(_ENV_FILE), extra="ignore")
 
     DATABASE_URL: str
-    SUPABASE_URL: str = ""
+    LOCAL_USER_ID: str = "00000000-0000-4000-8000-000000000001"
     VOYAGE_API_KEY: str = ""
     TURBOPUFFER_API_KEY: str = ""
     EMBEDDING_MODEL: str = "voyage-4-lite"

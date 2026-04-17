@@ -44,10 +44,26 @@ async def _recover_stuck_documents(pool: asyncpg.Pool, ocr_service):
         asyncio.create_task(ocr_service.process_document(row["id"], row["user_id"]))
 
 
+async def _ensure_local_user(pool: asyncpg.Pool) -> None:
+    await pool.execute(
+        "INSERT INTO users (id, email, display_name, onboarded) "
+        "VALUES ($1::uuid, $2, $3, true) "
+        "ON CONFLICT (id) DO UPDATE "
+        "SET email = EXCLUDED.email, "
+        "    display_name = COALESCE(users.display_name, EXCLUDED.display_name), "
+        "    onboarded = true, "
+        "    updated_at = now()",
+        settings.LOCAL_USER_ID,
+        settings.LOCAL_USER_EMAIL,
+        settings.LOCAL_USER_NAME,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     pool = await asyncpg.create_pool(settings.DATABASE_URL, min_size=2, max_size=10)
     app.state.pool = pool
+    await _ensure_local_user(pool)
 
     s3_service = None
     ocr_service = None

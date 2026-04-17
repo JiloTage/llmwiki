@@ -47,13 +47,13 @@ export default function LandingPage() {
             GitHub
           </Link>
           <Link
-            href="/login"
+            href="/wikis"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             ログイン
           </Link>
           <Link
-            href="/signup"
+            href="/wikis"
             className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-foreground text-background px-4 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity"
           >
             はじめる
@@ -99,7 +99,7 @@ export default function LandingPage() {
             className="mt-9 flex items-center justify-center gap-3"
           >
             <Link
-              href="/signup"
+              href="/wikis"
               className="inline-flex items-center gap-2 rounded-full bg-foreground text-background px-6 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
             >
               はじめる
@@ -339,7 +339,7 @@ export default function LandingPage() {
             寄せ集めのスクリプトではなく、実用的なプロダクトとして使えます。
           </p>
           <Link
-            href="/signup"
+            href="/wikis"
             className="inline-flex items-center gap-2 rounded-full bg-foreground text-background px-7 py-3 text-sm font-medium hover:opacity-90 transition-opacity"
           >
             無料ではじめる

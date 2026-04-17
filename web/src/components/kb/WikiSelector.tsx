@@ -36,7 +36,11 @@ export function WikiSelector({ kbName }: { kbName: string }) {
     <>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <button className="flex items-center gap-1.5 w-full px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent rounded-md transition-colors cursor-pointer">
+          <button
+            type="button"
+            data-testid="wiki-selector-trigger"
+            className="flex items-center gap-1.5 w-full px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent rounded-md transition-colors cursor-pointer"
+          >
             <span className="truncate flex-1 text-left">{kbName}</span>
             <ChevronsUpDown className="size-3 text-muted-foreground/50 shrink-0" />
           </button>

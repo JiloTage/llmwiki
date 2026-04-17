@@ -2,30 +2,27 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
+import { Moon, Settings, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useUserStore } from '@/stores'
-import { Settings, LogOut, Moon, Sun } from 'lucide-react'
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { createClient } from '@/lib/supabase/client'
 
 export function UserMenu() {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
   const user = useUserStore((s) => s.user)
-  const signOutLocal = useUserStore((s) => s.signOut)
   const [mounted, setMounted] = React.useState(false)
 
-  React.useEffect(() => { setMounted(true) }, [])
-
-  const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    signOutLocal()
-    router.push('/login')
-  }
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
   if (!user) return null
 
@@ -45,22 +42,23 @@ export function UserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push('/settings')}>
           <Settings className="mr-2 h-4 w-4" />
-          設定
+          Settings
         </DropdownMenuItem>
         {mounted && (
           <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
             {theme === 'dark' ? (
-              <><Sun className="mr-2 h-4 w-4" />ライトモード</>
+              <>
+                <Sun className="mr-2 h-4 w-4" />
+                Light Mode
+              </>
             ) : (
-              <><Moon className="mr-2 h-4 w-4" />ダークモード</>
+              <>
+                <Moon className="mr-2 h-4 w-4" />
+                Dark Mode
+              </>
             )}
           </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut}>
-          <LogOut className="mr-2 h-4 w-4" />
-          ログアウト
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

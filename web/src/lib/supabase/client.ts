@@ -1,14 +1,33 @@
-import { createBrowserClient } from "@supabase/ssr";
+import { LOCAL_ACCESS_TOKEN, LOCAL_USER_EMAIL, LOCAL_USER_ID } from '@/lib/local-user'
 
 export function createClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables",
-    );
+  return {
+    auth: {
+      async getSession() {
+        return {
+          data: {
+            session: {
+              access_token: LOCAL_ACCESS_TOKEN,
+              user: {
+                id: LOCAL_USER_ID,
+                email: LOCAL_USER_EMAIL,
+              },
+            },
+          },
+        }
+      },
+      async signOut() {
+        return { error: null }
+      },
+      onAuthStateChange() {
+        return {
+          data: {
+            subscription: {
+              unsubscribe() {},
+            },
+          },
+        }
+      },
+    },
   }
-
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }

@@ -2,32 +2,36 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
+import { BookOpen, Loader2, Moon, Plus, Sun } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import { useKBStore, useUserStore } from '@/stores'
 import {
-  Plus, Loader2, Upload, LogOut, Moon, Sun, BookOpen,
-} from 'lucide-react'
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
-  DropdownMenuItem, DropdownMenuSeparator,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useTheme } from 'next-themes'
-import { createClient } from '@/lib/supabase/client'
 
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return 'たった今'
-  if (minutes < 60) return `${minutes}分前`
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes}m ago`
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}時間前`
+  if (hours < 24) return `${hours}h ago`
   const days = Math.floor(hours / 24)
-  if (days < 30) return `${days}日前`
+  if (days < 30) return `${days}d ago`
   const months = Math.floor(days / 30)
-  if (months < 12) return `${months}か月前`
-  return `${Math.floor(months / 12)}年前`
+  if (months < 12) return `${months}mo ago`
+  return `${Math.floor(months / 12)}y ago`
 }
 
 export default function WikisPage() {
@@ -45,10 +49,10 @@ export default function WikisPage() {
     try {
       const email = user?.email || 'my'
       const displayName = email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1)
-      const kb = await createKB(`${displayName} の Wiki`)
+      const kb = await createKB(`${displayName} Wiki`)
       router.push(`/wikis/${kb.slug}`)
     } catch (err) {
-      console.error('Failed to create KB:', err)
+      console.error('Failed to create wiki:', err)
     } finally {
       setCreating(false)
     }
@@ -63,7 +67,7 @@ export default function WikisPage() {
       setName('')
       router.push(`/wikis/${kb.slug}`)
     } catch (err) {
-      console.error('Failed to create KB:', err)
+      console.error('Failed to create wiki:', err)
     } finally {
       setCreating(false)
     }
@@ -77,137 +81,87 @@ export default function WikisPage() {
     )
   }
 
-  if (knowledgeBases.length === 0) {
-    return (
-      <div className="h-full flex flex-col">
-        <PageHeader onNew={() => setDialogOpen(true)} />
-        <div className="flex-1 flex flex-col items-center justify-center p-8">
-          <div className="w-full max-w-2xl">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-foreground mb-6">
-                <BookOpen size={24} className="text-background" />
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                最初の Wiki を作成
-              </h1>
-              <p className="mt-3 text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
-                ソースをアップロードし、Claude と接続すれば、構造化された Wiki を自動で生成できます。
-              </p>
-            </div>
-
-            <div className="grid sm:grid-cols-3 gap-4 mb-10">
-              {[
-                {
-                  step: '1',
-                  title: 'Wiki を作成',
-                  desc: '知識空間に名前を付けます。必要なだけ作成できます。',
-                },
-                {
-                  step: '2',
-                  title: 'Add sources',
-                  desc: 'Upload PDFs, notes, transcripts — anything you want Claude to learn from.',
-                },
-                {
-                  step: '3',
-                  title: 'Ask Claude',
-                  desc: 'Claude reads your sources and compiles a wiki with cross-references and summaries.',
-                },
-              ].map((item) => (
-                <div key={item.step} className="rounded-xl border border-border p-5 bg-card">
-                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-foreground text-background text-xs font-bold mb-3">
-                    {item.step}
-                  </div>
-                  <h3 className="text-sm font-semibold mb-1">{item.title}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-col items-center gap-3">
-              <button
-                onClick={handleQuickCreate}
-                disabled={creating}
-                className="inline-flex items-center justify-center gap-2.5 rounded-full bg-foreground text-background px-8 py-3 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
-              >
-                {creating ? (
-                  <><Loader2 size={15} className="animate-spin" /> 作成中...</>
-                ) : (
-                  <><Plus size={15} /> はじめる</>
-                )}
-              </button>
-              <button
-                onClick={() => setDialogOpen(true)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              >
-                または名前を指定して作成
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <CreateWikiDialog
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          name={name}
-          onNameChange={setName}
-          creating={creating}
-          onCreate={handleCreate}
-        />
-      </div>
-    )
-  }
-
   return (
     <div className="h-full flex flex-col">
       <PageHeader onNew={() => setDialogOpen(true)} />
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-8 py-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {knowledgeBases.map((kb) => {
-              const stats: string[] = []
-              if (kb.source_count > 0) stats.push(`${kb.source_count} source${kb.source_count !== 1 ? 's' : ''}`)
-              if (kb.wiki_page_count > 0) stats.push(`${kb.wiki_page_count} page${kb.wiki_page_count !== 1 ? 's' : ''}`)
+          {knowledgeBases.length === 0 ? (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center text-center">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-foreground mb-6">
+                <BookOpen size={24} className="text-background" />
+              </div>
+              <h1 className="text-3xl font-bold tracking-tight">Create your first wiki</h1>
+              <p className="mt-3 text-base text-muted-foreground max-w-md">
+                Add a wiki, upload sources, and use the local MCP endpoint without any login flow.
+              </p>
+              <button
+                onClick={handleQuickCreate}
+                disabled={creating}
+                data-testid="quick-create-wiki"
+                className="mt-8 inline-flex items-center justify-center gap-2.5 rounded-full bg-foreground text-background px-8 py-3 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+              >
+                {creating ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus size={15} />
+                    Create Wiki
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {knowledgeBases.map((kb) => {
+                const stats: string[] = []
+                if (kb.source_count > 0) stats.push(`${kb.source_count} source${kb.source_count !== 1 ? 's' : ''}`)
+                if (kb.wiki_page_count > 0) stats.push(`${kb.wiki_page_count} page${kb.wiki_page_count !== 1 ? 's' : ''}`)
 
-              return (
-                <button
-                  key={kb.id}
-                  onClick={() => router.push(`/wikis/${kb.slug}`)}
-                  className="flex flex-col items-start gap-3 p-5 rounded-xl border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer text-left group overflow-hidden"
-                >
-                  <div className="flex items-center gap-3 min-w-0 w-full">
-                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-muted group-hover:bg-accent transition-colors flex-shrink-0">
-                      <BookOpen size={16} className="text-muted-foreground group-hover:text-foreground transition-colors" />
+                return (
+                  <button
+                    key={kb.id}
+                    onClick={() => router.push(`/wikis/${kb.slug}`)}
+                    className="flex flex-col items-start gap-3 p-5 rounded-xl border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer text-left group overflow-hidden"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 w-full">
+                      <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-muted group-hover:bg-accent transition-colors flex-shrink-0">
+                        <BookOpen size={16} className="text-muted-foreground group-hover:text-foreground transition-colors" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="text-sm font-medium text-foreground truncate">{kb.name}</h2>
+                        {kb.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{kb.description}</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <h2 className="text-sm font-medium text-foreground truncate">{kb.name}</h2>
-                      {kb.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{kb.description}</p>
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground/50 w-full">
+                      {stats.length > 0 ? (
+                        <span>{stats.join(' · ')}</span>
+                      ) : (
+                        <span className="text-muted-foreground/30">No sources yet</span>
                       )}
+                      <span className="ml-auto text-muted-foreground/30 shrink-0">
+                        {relativeTime(kb.updated_at)}
+                      </span>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground/50 w-full">
-                    {stats.length > 0 ? (
-                      <span>{stats.join(' \u00B7 ')}</span>
-                    ) : (
-                      <span className="text-muted-foreground/30">まだソースがありません</span>
-                    )}
-                    <span className="ml-auto text-muted-foreground/30 shrink-0">
-                      {relativeTime(kb.updated_at)}
-                    </span>
-                  </div>
-                </button>
-              )
-            })}
+                  </button>
+                )
+              })}
 
-            <button
-              onClick={() => setDialogOpen(true)}
-              className="flex flex-col items-center justify-center gap-2 p-5 rounded-xl border border-dashed border-border hover:border-primary/50 hover:bg-accent/30 transition-colors cursor-pointer min-h-[112px]"
-            >
-              <Plus size={16} className="text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">新しい Wiki</span>
-            </button>
-          </div>
+              <button
+                onClick={() => setDialogOpen(true)}
+                className="flex flex-col items-center justify-center gap-2 p-5 rounded-xl border border-dashed border-border hover:border-primary/50 hover:bg-accent/30 transition-colors cursor-pointer min-h-[112px]"
+              >
+                <Plus size={16} className="text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">New Wiki</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -231,34 +185,30 @@ function PageHeader({ onNew }: { onNew?: () => void }) {
         {onNew && (
           <button
             onClick={onNew}
+            data-testid="open-create-wiki-dialog"
             className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors cursor-pointer"
           >
             <Plus className="size-3" />
-            新規
+            New
           </button>
         )}
-        <UserMenu />
+        <HeaderUserMenu />
       </div>
     </div>
   )
 }
 
-function UserMenu() {
-  const router = useRouter()
+function HeaderUserMenu() {
   const { theme, setTheme } = useTheme()
   const user = useUserStore((s) => s.user)
-  const signOutLocal = useUserStore((s) => s.signOut)
   const [mounted, setMounted] = React.useState(false)
-  React.useEffect(() => { setMounted(true) }, [])
 
-  const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    signOutLocal()
-    router.push('/login')
-  }
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
   if (!user) return null
+
   const initials = user.email.slice(0, 2).toUpperCase()
 
   return (
@@ -276,17 +226,18 @@ function UserMenu() {
         {mounted && (
           <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
             {theme === 'dark' ? (
-              <><Sun className="mr-2 h-4 w-4" />ライトモード</>
+              <>
+                <Sun className="mr-2 h-4 w-4" />
+                Light Mode
+              </>
             ) : (
-              <><Moon className="mr-2 h-4 w-4" />ダークモード</>
+              <>
+                <Moon className="mr-2 h-4 w-4" />
+                Dark Mode
+              </>
             )}
           </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut}>
-          <LogOut className="mr-2 h-4 w-4" />
-          ログアウト
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -311,13 +262,14 @@ function CreateWikiDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Wiki を作成</DialogTitle>
+          <DialogTitle>Create Wiki</DialogTitle>
         </DialogHeader>
         <input
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && onCreate()}
-          placeholder="マイリサーチ"
+          placeholder="Wiki name"
+          data-testid="create-wiki-name-input"
           className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
           autoFocus
         />
@@ -325,9 +277,10 @@ function CreateWikiDialog({
           <button
             onClick={onCreate}
             disabled={creating || !name.trim()}
+            data-testid="submit-create-wiki"
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer"
           >
-            {creating ? '作成中...' : '作成'}
+            {creating ? 'Creating...' : 'Create'}
           </button>
         </DialogFooter>
       </DialogContent>

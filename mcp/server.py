@@ -1,20 +1,16 @@
-"""Supavault MCP Server — knowledge vault tools for Claude."""
+"""Supavault MCP Server - knowledge vault tools for Claude."""
 
 import os
+from urllib.parse import urlparse
 
 import logfire
 import sentry_sdk
 import uvicorn
-from urllib.parse import urlparse
-
-from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
-from pydantic import AnyHttpUrl
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 
-from auth import SupabaseTokenVerifier
 from config import settings
 from tools import register
 
@@ -37,14 +33,9 @@ mcp = FastMCP(
     instructions=(
         "You are connected to an LLM Wiki workspace. The user has uploaded files, notes, "
         "and documents that you can read, search, edit, and organize. Your job is to work "
-        "with these materials — answer questions, take notes, and compile structured wiki "
+        "with these materials - answer questions, take notes, and compile structured wiki "
         "pages from the raw sources. Call the `guide` tool first to see available knowledge "
         "bases and learn the full workflow."
-    ),
-    token_verifier=SupabaseTokenVerifier(),
-    auth=AuthSettings(
-        issuer_url=AnyHttpUrl(f"{settings.SUPABASE_URL}/auth/v1"),
-        resource_server_url=AnyHttpUrl(settings.MCP_URL),
     ),
     transport_security=TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
@@ -56,6 +47,7 @@ register(mcp)
 
 
 async def health(request):
+    del request
     return PlainTextResponse("OK")
 
 

@@ -1,11 +1,11 @@
 'use client'
 
 import * as React from 'react'
-import { Copy, Check, ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Check, Copy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils'
 import { apiFetch } from '@/lib/api'
-import { buildOAuthMcpConfig, MCP_URL } from '@/lib/mcp'
+import { buildMcpConfig, MCP_URL } from '@/lib/mcp'
+import { cn } from '@/lib/utils'
 import { useUserStore } from '@/stores'
 
 interface Usage {
@@ -28,26 +28,22 @@ export default function SettingsPage() {
   const router = useRouter()
   const token = useUserStore((s) => s.accessToken)
   const [usage, setUsage] = React.useState<Usage | null>(null)
-  const [loading, setLoading] = React.useState(true)
   const [configCopied, setConfigCopied] = React.useState(false)
 
-  const oauthConfigJson = buildOAuthMcpConfig()
+  const mcpConfigJson = buildMcpConfig()
 
   React.useEffect(() => {
     if (!token) return
-    apiFetch<Usage>('/v1/usage', token)
-      .then((u) => setUsage(u))
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    apiFetch<Usage>('/v1/usage', token).then(setUsage).catch(() => {})
   }, [token])
 
   const handleCopyConfig = async () => {
     try {
-      await navigator.clipboard.writeText(oauthConfigJson)
+      await navigator.clipboard.writeText(mcpConfigJson)
       setConfigCopied(true)
       setTimeout(() => setConfigCopied(false), 2000)
     } catch {
-      console.error('コピーに失敗しました')
+      console.error('設定のコピーに失敗しました')
     }
   }
 
@@ -60,20 +56,19 @@ export default function SettingsPage() {
         >
           <ArrowLeft className="size-4" />
         </button>
-        <h1 className="text-xl font-semibold tracking-tight">設定</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
       </div>
 
-      {/* Usage */}
       {usage && (
         <section>
-          <h2 className="text-base font-medium">利用状況</h2>
+          <h2 className="text-base font-medium">Usage</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            アップロード済みドキュメント: {usage.document_count} 件
+            {usage.document_count} documents
           </p>
           <div className="mt-4 space-y-4">
             <div>
               <div className="flex items-center justify-between text-sm mb-1.5">
-                <span className="text-muted-foreground">ストレージ</span>
+                <span className="text-muted-foreground">Storage</span>
                 <span className="font-mono text-xs">
                   {formatBytes(usage.total_storage_bytes)} / {formatBytes(usage.max_storage_bytes)}
                 </span>
@@ -86,7 +81,7 @@ export default function SettingsPage() {
                       ? 'bg-destructive'
                       : usage.total_storage_bytes / usage.max_storage_bytes > 0.7
                         ? 'bg-yellow-500'
-                        : 'bg-primary'
+                        : 'bg-primary',
                   )}
                   style={{ width: `${Math.min(100, (usage.total_storage_bytes / usage.max_storage_bytes) * 100)}%` }}
                 />
@@ -94,7 +89,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <div className="flex items-center justify-between text-sm mb-1.5">
-                <span className="text-muted-foreground">OCR ページ数</span>
+                <span className="text-muted-foreground">OCR Pages</span>
                 <span className="font-mono text-xs">
                   {usage.total_pages.toLocaleString()} / {usage.max_pages.toLocaleString()}
                 </span>
@@ -107,7 +102,7 @@ export default function SettingsPage() {
                       ? 'bg-destructive'
                       : usage.total_pages / usage.max_pages > 0.7
                         ? 'bg-yellow-500'
-                        : 'bg-primary'
+                        : 'bg-primary',
                   )}
                   style={{ width: `${Math.min(100, (usage.total_pages / usage.max_pages) * 100)}%` }}
                 />
@@ -119,15 +114,14 @@ export default function SettingsPage() {
 
       {usage && <div className="h-px bg-border my-8" />}
 
-      {/* MCP Config */}
       <section>
-        <h2 className="text-base font-medium">OAuth で接続</h2>
+        <h2 className="text-base font-medium">MCP Config</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          この設定を MCP クライアントに追加してください。初回接続時に Supabase でのサインインが求められます。
+          この設定を MCP クライアントに追加すると、ローカルの LLM Wiki に接続できます。
         </p>
         <div className="relative mt-4">
           <pre className="rounded-lg bg-muted border border-border p-4 text-sm font-mono overflow-x-auto text-foreground">
-            {oauthConfigJson}
+            {mcpConfigJson}
           </pre>
           <button
             onClick={handleCopyConfig}
@@ -135,15 +129,14 @@ export default function SettingsPage() {
               'absolute top-3 right-3 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors cursor-pointer',
               configCopied
                 ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                : 'bg-background border border-border text-muted-foreground hover:text-foreground hover:bg-accent'
+                : 'bg-background border border-border text-muted-foreground hover:text-foreground hover:bg-accent',
             )}
           >
-            {configCopied ? <><Check size={12} />コピー済み</> : <><Copy size={12} />コピー</>}
+            {configCopied ? <><Check size={12} />Copied</> : <><Copy size={12} />Copy</>}
           </button>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          MCP URL:
-          {' '}
+          MCP URL:{' '}
           <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{MCP_URL}</code>
         </p>
       </section>
