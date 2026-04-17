@@ -5,8 +5,6 @@ import asyncpg
 import httpx
 import pytest
 
-from tests.helpers.jwt import seed_jwks_cache
-
 DB_URL = os.environ["DATABASE_URL"]
 
 
@@ -31,8 +29,6 @@ async def client(pool):
     app.state.pool = pool
     app.state.s3_service = None
     app.state.ocr_service = None
-
-    seed_jwks_cache()
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:

@@ -1,7 +1,7 @@
 import pytest
 
-USER_A_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
-USER_A_EMAIL = "alice@test.com"
+USER_A_ID = "00000000-0000-4000-8000-000000000001"
+USER_A_EMAIL = "local@llmwiki.local"
 
 USER_B_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
 USER_B_EMAIL = "bob@test.com"

@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     LOCAL_USER_ID: str = "00000000-0000-4000-8000-000000000001"
     LOCAL_USER_EMAIL: str = "local@llmwiki.local"
     LOCAL_USER_NAME: str = "Local User"
+    LOCAL_ACCESS_TOKEN: str = "local-dev-session"
     VOYAGE_API_KEY: str = ""
     TURBOPUFFER_API_KEY: str = ""
     EMBEDDING_MODEL: str = "voyage-4-lite"
