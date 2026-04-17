@@ -1,25 +1,38 @@
-# Dependencies
-node_modules/
-.venv/
-venv/
-
-# MCP config (contains user IDs)
-.mcp.json
-mcp/local_server.py
-
-# Build
-.next/
-dist/
-*.egg-info/
-
-# Secrets — NEVER commit
+# Environment and secrets
 .env
 .env.*
 !.env.example
 
 # Python
+.venv/
+venv/
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Node / Next.js
+node_modules/
+.next/
+.turbo/
+dist/
+coverage/
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# Logs
+*.log
+*.err.log
+
+# Local MCP config
+.mcp.json
+mcp/local_server.py
 
 # IDE
 .idea/
@@ -31,11 +44,5 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Misc
-package-lock.json
-playwright-report/
-test-results/
-
 # Local Netlify folder
-.netlify
-nvidia-10k-first20.md
+.netlify/

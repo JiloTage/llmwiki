@@ -1,2 +1,0 @@
-[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
-⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
