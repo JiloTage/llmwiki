@@ -3,17 +3,13 @@
 import * as React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import remarkMath from 'remark-math'
-import rehypeKatex from 'rehype-katex'
 import rehypeSanitize from 'rehype-sanitize'
-import 'katex/dist/katex.min.css'
 import type { Components } from 'react-markdown'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { apiFetch } from '@/lib/api'
 import { useUserStore } from '@/stores'
-import { MermaidBlock } from './MermaidBlock'
 import type { DocumentListItem } from '@/lib/types'
 
 export interface TocItem {
@@ -389,21 +385,6 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
         return <p className="my-2 leading-[1.65] text-foreground/90">{children}</p>
       },
       pre({ children, ...props }) {
-        const child = React.Children.toArray(children)[0]
-        if (
-          React.isValidElement(child) &&
-          typeof child.props === 'object' &&
-          child.props !== null &&
-          'className' in child.props &&
-          typeof child.props.className === 'string' &&
-          child.props.className.includes('language-mermaid')
-        ) {
-          const text =
-            'children' in child.props
-              ? String(child.props.children).replace(/\n$/, '')
-              : ''
-          return <MermaidBlock chart={text} />
-        }
         return (
           <pre
             className="text-[13px] leading-relaxed my-3 bg-muted/60 border border-border rounded-lg p-4 overflow-x-auto"
@@ -673,8 +654,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
             )}
             <div className="wiki-content text-[15px] leading-relaxed">
               <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkMath]}
-                rehypePlugins={[rehypeKatex]}
+                remarkPlugins={[remarkGfm]}
                 components={components}
               >
                 {processedContent}

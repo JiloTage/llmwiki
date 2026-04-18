@@ -1,57 +1,24 @@
 'use client'
 
 import * as React from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import Placeholder from '@tiptap/extension-placeholder'
-import Typography from '@tiptap/extension-typography'
-import Link from '@tiptap/extension-link'
-import Image from '@tiptap/extension-image'
-import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table'
-import { Markdown } from 'tiptap-markdown'
 import { format, parse, isValid } from 'date-fns'
-import { X, CalendarIcon, Plus, ChevronUp } from 'lucide-react'
+import { CalendarIcon, ChevronLeft, ChevronUp, Plus, X } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
-import { useUserStore } from '@/stores'
-import { cn, sanitizeTitle } from '@/lib/utils'
-import { NoteToolbar } from './NoteToolbar'
-import {
-  sanitizeUrl, defaultValue, migrateProperties,
-  PropertyValueEditor, TagsRow, PropertyRow, AddPropertyButton,
-} from './PropertyEditors'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
-import type { Editor } from '@tiptap/react'
-import type { PropertyType, TypedProperty, PropertyMap } from '@/lib/types'
+import {
+  AddPropertyButton,
+  PropertyRow,
+  TagsRow,
+  defaultValue,
+  migrateProperties,
+} from './PropertyEditors'
+import { cn, sanitizeTitle } from '@/lib/utils'
+import { useUserStore } from '@/stores'
+import type { PropertyMap, PropertyType, TypedProperty } from '@/lib/types'
 
 const AUTOSAVE_DELAY = 1500
-
-function getMarkdown(editor: Editor): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (editor.storage as any).markdown.getMarkdown()
-}
-
 const FRONTMATTER_RE = /^\s*---[ \t]*\n([\s\S]*?\n)---[ \t]*\n/
-
-function stripFrontmatter(content: string): { body: string; meta: Record<string, string> } {
-  const match = content.match(FRONTMATTER_RE)
-  if (!match) return { body: content, meta: {} }
-
-  const body = content.slice(match[0].length)
-  const meta: Record<string, string> = {}
-  for (const line of match[1].split('\n')) {
-    const idx = line.indexOf(':')
-    if (idx > 0) {
-      const key = line.slice(0, idx).trim()
-      const val = line.slice(idx + 1).trim()
-      if (key && val && !key.startsWith(' ') && !key.startsWith('-')) {
-        meta[key] = val
-      }
-    }
-  }
-  return { body, meta }
-}
-
 
 interface NoteEditorProps {
   documentId: string
@@ -66,7 +33,30 @@ interface NoteEditorProps {
   embedded?: boolean
 }
 
-async function getAccessToken(): Promise<string | null> {
+function stripFrontmatter(content: string): { body: string; frontmatter: string; meta: Record<string, string> } {
+  const match = content.match(FRONTMATTER_RE)
+  if (!match) return { body: content, frontmatter: '', meta: {} }
+
+  const meta: Record<string, string> = {}
+  for (const line of match[1].split('\n')) {
+    const idx = line.indexOf(':')
+    if (idx > 0) {
+      const key = line.slice(0, idx).trim()
+      const value = line.slice(idx + 1).trim()
+      if (key && value && !key.startsWith(' ') && !key.startsWith('-')) {
+        meta[key] = value
+      }
+    }
+  }
+
+  return {
+    body: content.slice(match[0].length),
+    frontmatter: match[0],
+    meta,
+  }
+}
+
+async function getAccessToken() {
   return useUserStore.getState().accessToken
 }
 
@@ -83,74 +73,32 @@ export function NoteEditor({
   embedded,
 }: NoteEditorProps) {
   const [title, setTitle] = React.useState(initialTitle ?? '')
-  const [date, setDate] = React.useState<string>(initialDate ?? '')
+  const [content, setContent] = React.useState(initialContent ?? '')
+  const [date, setDate] = React.useState(initialDate ?? '')
   const [tags, setTags] = React.useState<string[]>(initialTags ?? [])
   const [tagInput, setTagInput] = React.useState('')
   const [properties, setProperties] = React.useState<PropertyMap>(() =>
-    initialProperties ? migrateProperties(initialProperties) : {}
+    initialProperties ? migrateProperties(initialProperties) : {},
   )
-  const [loaded, setLoaded] = React.useState(false)
-  const [calendarOpen, setCalendarOpen] = React.useState(false)
-  const [saveStatus, setSaveStatus] = React.useState<'saved' | 'saving' | 'idle'>('idle')
-  const [wordCount, setWordCount] = React.useState(0)
   const [metaExpanded, setMetaExpanded] = React.useState(false)
+  const [calendarOpen, setCalendarOpen] = React.useState(false)
+  const [loaded, setLoaded] = React.useState(false)
+  const [saveStatus, setSaveStatus] = React.useState<'idle' | 'saving' | 'saved'>('idle')
+
+  const frontmatterRef = React.useRef('')
   const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-  const latestContentRef = React.useRef<string>('')
-  const frontmatterRef = React.useRef<string>('')
-  const latestTitleRef = React.useRef<string>(initialTitle ?? '')
-  const latestDateRef = React.useRef<string>(initialDate ?? '')
-  const latestTagsRef = React.useRef<string[]>(initialTags ?? [])
-  const latestPropertiesRef = React.useRef<PropertyMap>(
-    initialProperties ? migrateProperties(initialProperties) : {}
-  )
   const dirtyRef = React.useRef(false)
   const metaDirtyRef = React.useRef(false)
+  const latestTitleRef = React.useRef(initialTitle ?? '')
+  const latestContentRef = React.useRef(initialContent ?? '')
+  const latestDateRef = React.useRef(initialDate ?? '')
+  const latestTagsRef = React.useRef<string[]>(initialTags ?? [])
+  const latestPropertiesRef = React.useRef<PropertyMap>(initialProperties ? migrateProperties(initialProperties) : {})
 
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-        link: false,
-      }),
-      Placeholder.configure({ placeholder: '書き始める...' }),
-      Typography,
-      Link.configure({ autolink: true, openOnClick: false }),
-      Image.configure({ inline: false, allowBase64: true }),
-      Table.configure({ resizable: false }),
-      TableRow,
-      TableHeader,
-      TableCell,
-      Markdown.configure({
-        html: false,
-        transformCopiedText: true,
-        transformPastedText: true,
-      }),
-    ],
-    editorProps: {
-      attributes: {
-        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[calc(100vh-200px)] cursor-text',
-      },
-      handleClick: (_view, _pos, event) => {
-        const anchor = (event.target as HTMLElement).closest('a')
-        if (!anchor) return false
-        const href = anchor.getAttribute('href')
-        if (!href) return false
-        const safeHref = sanitizeUrl(href)
-        if (safeHref) window.open(safeHref, '_blank', 'noopener')
-        return true
-      },
-    },
-    onUpdate: ({ editor }) => {
-      latestContentRef.current = getMarkdown(editor)
-      dirtyRef.current = true
-      setSaveStatus('idle')
-      scheduleSave()
-
-      const text = editor.state.doc.textContent
-      setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0)
-    },
-  })
+  const wordCount = React.useMemo(() => {
+    const trimmed = content.trim()
+    return trimmed ? trimmed.split(/\s+/).length : 0
+  }, [content])
 
   const dateValue = React.useMemo(() => {
     if (!date) return undefined
@@ -158,54 +106,9 @@ export function NoteEditor({
     return isValid(parsed) ? parsed : undefined
   }, [date])
 
-  React.useEffect(() => {
-    let cancelled = false
-
-    const load = async () => {
-      setLoaded(false)
-      const token = await getAccessToken()
-      if (!token || cancelled) return
-
-      try {
-        const { content } = await apiFetch<{ id: string; content: string; version: number }>(
-          `/api/v1/documents/${documentId}/content`,
-          token,
-        )
-
-        if (cancelled) return
-        const raw = content ?? ''
-        const { body, meta } = stripFrontmatter(raw)
-        const fmMatch = raw.match(FRONTMATTER_RE)
-        frontmatterRef.current = fmMatch ? fmMatch[0] : ''
-        latestContentRef.current = body
-        editor?.commands.setContent(body)
-
-        if (meta.date && !date) {
-          setDate(meta.date)
-        }
-      } catch (err) {
-        console.error('[NoteEditor] Failed to load content:', err)
-        if (initialContent != null && !cancelled) {
-          latestContentRef.current = initialContent
-          editor?.commands.setContent(initialContent)
-        }
-      }
-
-      if (!cancelled) {
-        setLoaded(true)
-        if (editor) {
-          const text = editor.state.doc.textContent
-          setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0)
-        }
-      }
-    }
-
-    load()
-    return () => { cancelled = true }
-  }, [documentId, editor, initialContent])
-
   const save = React.useCallback(async () => {
     if (!dirtyRef.current) return
+
     dirtyRef.current = false
     const shouldPatchMeta = metaDirtyRef.current
     metaDirtyRef.current = false
@@ -219,32 +122,34 @@ export function NoteEditor({
     }
 
     try {
-      const promises: Promise<unknown>[] = [
+      const requests: Promise<unknown>[] = [
         apiFetch(`/api/v1/documents/${documentId}/content`, token, {
           method: 'PUT',
-          body: JSON.stringify({ content: frontmatterRef.current + latestContentRef.current }),
+          body: JSON.stringify({
+            content: `${frontmatterRef.current}${latestContentRef.current}`,
+          }),
         }),
       ]
 
       if (shouldPatchMeta) {
-        const hasProps = Object.keys(latestPropertiesRef.current).length > 0
-        promises.push(
+        const hasProperties = Object.keys(latestPropertiesRef.current).length > 0
+        requests.push(
           apiFetch(`/api/v1/documents/${documentId}`, token, {
             method: 'PATCH',
             body: JSON.stringify({
               title: latestTitleRef.current || null,
               tags: latestTagsRef.current.length > 0 ? latestTagsRef.current : null,
               date: latestDateRef.current || null,
-              metadata: hasProps ? { properties: latestPropertiesRef.current } : null,
+              metadata: hasProperties ? { properties: latestPropertiesRef.current } : null,
             }),
           }),
         )
       }
 
-      await Promise.all(promises)
+      await Promise.all(requests)
       setSaveStatus('saved')
-    } catch (err) {
-      console.error('[NoteEditor] save failed:', err)
+    } catch (error) {
+      console.error('[NoteEditor] save failed:', error)
       dirtyRef.current = true
       setSaveStatus('idle')
     }
@@ -252,202 +157,215 @@ export function NoteEditor({
 
   const scheduleSave = React.useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = setTimeout(save, AUTOSAVE_DELAY)
+    saveTimerRef.current = setTimeout(() => {
+      void save()
+    }, AUTOSAVE_DELAY)
   }, [save])
 
   React.useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-      if (dirtyRef.current) {
-        const frontmatter = frontmatterRef.current
-        const contentToSave = latestContentRef.current
-        const titleToSave = latestTitleRef.current
-        const tagsToSave = latestTagsRef.current
-        const dateToSave = latestDateRef.current
-        const propsToSave = latestPropertiesRef.current
-        const shouldPatchMeta = metaDirtyRef.current
-        const docId = documentId
+    let cancelled = false
 
-        ;(async () => {
-          const token = await getAccessToken()
-          if (!token) return
+    const load = async () => {
+      const token = await getAccessToken()
+      if (!token || cancelled) return
 
-          try {
-            const promises: Promise<unknown>[] = [
-              apiFetch(`/api/v1/documents/${docId}/content`, token, {
-                method: 'PUT',
-                body: JSON.stringify({ content: frontmatter + contentToSave }),
-              }),
-            ]
+      try {
+        const response = await apiFetch<{ id: string; content: string }>(
+          `/api/v1/documents/${documentId}/content`,
+          token,
+        )
 
-            if (shouldPatchMeta) {
-              const hasProps = Object.keys(propsToSave).length > 0
-              promises.push(
-                apiFetch(`/api/v1/documents/${docId}`, token, {
-                  method: 'PATCH',
-                  body: JSON.stringify({
-                    title: titleToSave || null,
-                    tags: tagsToSave.length > 0 ? tagsToSave : null,
-                    date: dateToSave || null,
-                    metadata: hasProps ? { properties: propsToSave } : null,
-                  }),
-                }),
-              )
-            }
+        if (cancelled) return
 
-            await Promise.all(promises)
-          } catch (err) {
-            console.error('[NoteEditor] flush on unmount failed:', err)
-          }
-        })()
+        const raw = response.content ?? ''
+        const { body, frontmatter, meta } = stripFrontmatter(raw)
+        frontmatterRef.current = frontmatter
+        latestContentRef.current = body
+        setContent(body)
+
+        if (!initialDate && meta.date) {
+          setDate(meta.date)
+          latestDateRef.current = meta.date
+        }
+      } catch (error) {
+        console.error('[NoteEditor] Failed to load content:', error)
+        if (!cancelled && initialContent != null) {
+          latestContentRef.current = initialContent
+          setContent(initialContent)
+        }
       }
+
+      if (!cancelled) setLoaded(true)
     }
-  }, [documentId])
+
+    void load()
+
+    return () => {
+      cancelled = true
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+  }, [documentId, initialContent, initialDate])
 
   React.useEffect(() => {
     const handleOnline = () => {
-      if (dirtyRef.current) save()
+      if (dirtyRef.current) void save()
     }
+
     window.addEventListener('online', handleOnline)
     return () => window.removeEventListener('online', handleOnline)
   }, [save])
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = sanitizeTitle(e.target.value)
-    setTitle(val)
-    latestTitleRef.current = val
+  const markMetaDirty = () => {
     dirtyRef.current = true
     metaDirtyRef.current = true
     setSaveStatus('idle')
     scheduleSave()
-    onTitleChange?.(val)
+  }
+
+  const handleTitleChange = (nextTitle: string) => {
+    const sanitized = sanitizeTitle(nextTitle)
+    setTitle(sanitized)
+    latestTitleRef.current = sanitized
+    onTitleChange?.(sanitized)
+    markMetaDirty()
+  }
+
+  const handleContentChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const nextContent = event.target.value
+    setContent(nextContent)
+    latestContentRef.current = nextContent
+    dirtyRef.current = true
+    setSaveStatus('idle')
+    scheduleSave()
   }
 
   const handleDateSelect = (selected: Date | undefined) => {
-    const val = selected ? format(selected, 'yyyy-MM-dd') : ''
-    setDate(val)
-    latestDateRef.current = val
-    dirtyRef.current = true
-    metaDirtyRef.current = true
-    setSaveStatus('idle')
-    scheduleSave()
+    const value = selected ? format(selected, 'yyyy-MM-dd') : ''
+    setDate(value)
+    latestDateRef.current = value
     setCalendarOpen(false)
-  }
-
-  const handleClearDate = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setDate('')
-    latestDateRef.current = ''
-    dirtyRef.current = true
-    metaDirtyRef.current = true
-    scheduleSave()
+    markMetaDirty()
   }
 
   const handleAddTag = () => {
     const tag = tagInput.trim()
-    if (!tag || tags.includes(tag)) { setTagInput(''); return }
-    const next = [...tags, tag]
-    setTags(next)
-    latestTagsRef.current = next
+    if (!tag || tags.includes(tag)) {
+      setTagInput('')
+      return
+    }
+
+    const nextTags = [...tags, tag]
+    setTags(nextTags)
+    latestTagsRef.current = nextTags
     setTagInput('')
-    dirtyRef.current = true
-    metaDirtyRef.current = true
-    scheduleSave()
+    markMetaDirty()
   }
 
   const handleRemoveTag = (tag: string) => {
-    const next = tags.filter((t) => t !== tag)
-    setTags(next)
-    latestTagsRef.current = next
-    dirtyRef.current = true
-    metaDirtyRef.current = true
-    scheduleSave()
+    const nextTags = tags.filter((entry) => entry !== tag)
+    setTags(nextTags)
+    latestTagsRef.current = nextTags
+    markMetaDirty()
   }
 
-  const handleTagKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') { e.preventDefault(); handleAddTag() }
-    if (e.key === 'Backspace' && !tagInput && tags.length > 0) {
+  const handleTagKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      handleAddTag()
+    }
+    if (event.key === 'Backspace' && !tagInput && tags.length > 0) {
       handleRemoveTag(tags[tags.length - 1])
     }
   }
 
   const handlePropertyChange = (key: string, value: TypedProperty['value']) => {
-    const prev = properties[key]
-    if (!prev) return
-    const next = { ...properties, [key]: { ...prev, value } }
-    setProperties(next)
-    latestPropertiesRef.current = next
-    dirtyRef.current = true
-    metaDirtyRef.current = true
-    setSaveStatus('idle')
-    scheduleSave()
+    const current = properties[key]
+    if (!current) return
+
+    const nextProperties = { ...properties, [key]: { ...current, value } }
+    setProperties(nextProperties)
+    latestPropertiesRef.current = nextProperties
+    markMetaDirty()
   }
 
-  const handlePropertyKeyRename = (oldKey: string, newKey: string) => {
-    if (!newKey.trim() || (newKey !== oldKey && newKey in properties)) return
-    const next: PropertyMap = {}
-    for (const [k, v] of Object.entries(properties)) {
-      next[k === oldKey ? newKey.trim() : k] = v
+  const handlePropertyRename = (oldKey: string, newKey: string) => {
+    const trimmed = newKey.trim()
+    if (!trimmed || (trimmed !== oldKey && trimmed in properties)) return
+
+    const nextProperties: PropertyMap = {}
+    for (const [key, value] of Object.entries(properties)) {
+      nextProperties[key === oldKey ? trimmed : key] = value
     }
-    setProperties(next)
-    latestPropertiesRef.current = next
-    dirtyRef.current = true
-    metaDirtyRef.current = true
-    scheduleSave()
+
+    setProperties(nextProperties)
+    latestPropertiesRef.current = nextProperties
+    markMetaDirty()
   }
 
   const handleAddProperty = (type: PropertyType) => {
-    let name = 'property'
-    let i = 1
-    while (name in properties) { name = `property ${i++}` }
-    const next = { ...properties, [name]: defaultValue(type) }
-    setProperties(next)
-    latestPropertiesRef.current = next
-    dirtyRef.current = true
-    metaDirtyRef.current = true
-    scheduleSave()
+    let key = 'property'
+    let index = 1
+    while (key in properties) key = `property ${index++}`
+
+    const nextProperties = { ...properties, [key]: defaultValue(type) }
+    setProperties(nextProperties)
+    latestPropertiesRef.current = nextProperties
+    markMetaDirty()
   }
 
   const handleRemoveProperty = (key: string) => {
-    const next = { ...properties }
-    delete next[key]
-    setProperties(next)
-    latestPropertiesRef.current = next
-    dirtyRef.current = true
-    metaDirtyRef.current = true
-    scheduleSave()
+    const nextProperties = { ...properties }
+    delete nextProperties[key]
+    setProperties(nextProperties)
+    latestPropertiesRef.current = nextProperties
+    markMetaDirty()
   }
 
   const handleSelectOptionsChange = (key: string, options: string[]) => {
-    const prev = properties[key]
-    if (!prev || prev.type !== 'select') return
-    const next = { ...properties, [key]: { ...prev, options } }
-    setProperties(next)
-    latestPropertiesRef.current = next
-    dirtyRef.current = true
-    metaDirtyRef.current = true
-    scheduleSave()
+    const current = properties[key]
+    if (!current || current.type !== 'select') return
+
+    const nextProperties = { ...properties, [key]: { ...current, options } }
+    setProperties(nextProperties)
+    latestPropertiesRef.current = nextProperties
+    markMetaDirty()
   }
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <NoteToolbar
-        editor={editor}
-        backLabel={backLabel ?? '戻る'}
-        noteTitle={title}
-        onTitleChange={embedded ? (val: string) => {
-          const sanitized = sanitizeTitle(val)
-          setTitle(sanitized)
-          latestTitleRef.current = sanitized
-          dirtyRef.current = true
-          metaDirtyRef.current = true
-          setSaveStatus('idle')
-          scheduleSave()
-          onTitleChange?.(sanitized)
-        } : undefined}
-        onBack={onBack ?? (() => {})}
-        embedded={embedded}
-      />
+      <div className={cn(
+        'shrink-0 flex items-center gap-3 border-b border-border',
+        embedded ? 'px-4 py-2' : 'px-5 py-4 bg-background',
+      )}>
+        {!embedded && (
+          <>
+            <button
+              onClick={onBack ?? (() => {})}
+              className="p-1 rounded transition-colors hover:bg-accent cursor-pointer text-foreground"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <div className="min-w-0 mr-auto text-sm">
+              <div className="text-muted-foreground truncate">{backLabel ?? 'Back'}</div>
+              <div className="font-medium truncate">{title || 'Untitled'}</div>
+            </div>
+          </>
+        )}
+
+        {embedded ? (
+          <input
+            type="text"
+            value={title}
+            onChange={(event) => handleTitleChange(event.target.value)}
+            placeholder="Untitled"
+            className="flex-1 min-w-0 text-sm font-medium text-foreground bg-transparent border-none outline-none placeholder:text-muted-foreground/30"
+          />
+        ) : (
+          <div className="text-[10px] text-muted-foreground ml-auto">
+            {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : ''}
+          </div>
+        )}
+      </div>
 
       <div className={cn(
         'flex-1 overflow-y-auto',
@@ -462,8 +380,8 @@ export function NoteEditor({
             <input
               type="text"
               value={title}
-              onChange={handleTitleChange}
-              placeholder="無題"
+              onChange={(event) => handleTitleChange(event.target.value)}
+              placeholder="Untitled"
               className="w-full text-2xl font-bold text-foreground bg-transparent border-none outline-none placeholder:text-muted-foreground/30 mb-4"
             />
           )}
@@ -474,93 +392,110 @@ export function NoteEditor({
               className="flex items-center gap-2 mb-4 text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
             >
               {date && <span className="bg-muted px-1.5 py-0.5 rounded text-[11px]">{date}</span>}
-              {tags.length > 0 && (
-                <span className="bg-muted px-1.5 py-0.5 rounded text-[11px]">タグ {tags.length} 件</span>
-              )}
+              {tags.length > 0 && <span className="bg-muted px-1.5 py-0.5 rounded text-[11px]">Tags {tags.length}</span>}
             </button>
           )}
+
           {!metaExpanded && !tags.length && !date && (
             <button
               onClick={() => setMetaExpanded(true)}
               className="flex items-center gap-1.5 mb-4 text-xs text-muted-foreground/30 hover:text-muted-foreground transition-colors cursor-pointer"
             >
               <Plus className="size-3" />
-              メタデータを追加
+              Add metadata
             </button>
           )}
-          {metaExpanded && <div className="mb-6 space-y-0.5">
-            <div className="flex items-center h-8">
-              <div className="flex items-center gap-2 w-24 shrink-0">
-                <CalendarIcon className="size-3.5 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">日付</span>
-              </div>
-              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                <PopoverTrigger asChild>
+
+          {metaExpanded && (
+            <div className="mb-6 space-y-0.5">
+              <div className="flex items-center h-8">
+                <div className="flex items-center gap-2 w-24 shrink-0">
+                  <CalendarIcon className="size-3.5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Date</span>
+                </div>
+                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      className={cn(
+                        'text-sm h-7 transition-colors cursor-pointer px-1.5',
+                        date ? 'text-foreground' : 'text-muted-foreground/40',
+                      )}
+                    >
+                      {dateValue ? format(dateValue, 'PPP') : 'Pick a date'}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateValue}
+                      onSelect={handleDateSelect}
+                      defaultMonth={dateValue ?? new Date()}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {date && (
                   <button
-                    className={cn(
-                      'text-sm h-7 transition-colors cursor-pointer px-1.5',
-                      date ? 'text-foreground' : 'text-muted-foreground/40'
-                    )}
+                    onClick={() => {
+                      setDate('')
+                      latestDateRef.current = ''
+                      markMetaDirty()
+                    }}
+                    className="ml-1 text-muted-foreground/40 hover:text-muted-foreground cursor-pointer"
                   >
-                    {dateValue ? format(dateValue, 'PPP') : '日付を選択'}
+                    <X className="size-3" />
                   </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dateValue}
-                    onSelect={handleDateSelect}
-                    defaultMonth={dateValue ?? new Date()}
-                  />
-                </PopoverContent>
-              </Popover>
-              {date && (
-                <button
-                  onClick={handleClearDate}
-                  className="ml-1 text-muted-foreground/40 hover:text-muted-foreground cursor-pointer"
-                >
-                  <X className="size-3" />
-                </button>
-              )}
-            </div>
+                )}
+              </div>
 
-            <TagsRow
-              tags={tags}
-              tagInput={tagInput}
-              onTagInputChange={setTagInput}
-              onTagKeyDown={handleTagKeyDown}
-              onAddTag={handleAddTag}
-              onRemoveTag={handleRemoveTag}
-            />
-
-            {Object.entries(properties).map(([key, prop]) => (
-              <PropertyRow
-                key={key}
-                propKey={key}
-                property={prop}
-                onValueChange={(value) => handlePropertyChange(key, value)}
-                onKeyRename={handlePropertyKeyRename}
-                onRemove={() => handleRemoveProperty(key)}
-                onOptionsChange={prop.type === 'select' ? (opts) => handleSelectOptionsChange(key, opts) : undefined}
+              <TagsRow
+                tags={tags}
+                tagInput={tagInput}
+                onTagInputChange={setTagInput}
+                onTagKeyDown={handleTagKeyDown}
+                onAddTag={handleAddTag}
+                onRemoveTag={handleRemoveTag}
               />
-            ))}
 
-            <AddPropertyButton onAdd={handleAddProperty} />
+              {Object.entries(properties).map(([key, property]) => (
+                <PropertyRow
+                  key={key}
+                  propKey={key}
+                  property={property}
+                  onValueChange={(value) => handlePropertyChange(key, value)}
+                  onKeyRename={handlePropertyRename}
+                  onRemove={() => handleRemoveProperty(key)}
+                  onOptionsChange={
+                    property.type === 'select'
+                      ? (options) => handleSelectOptionsChange(key, options)
+                      : undefined
+                  }
+                />
+              ))}
 
-            <button
-              onClick={() => setMetaExpanded(false)}
-              className="flex items-center gap-1.5 h-7 text-sm text-muted-foreground/30 hover:text-muted-foreground transition-colors cursor-pointer"
-            >
-              <ChevronUp className="size-3.5" />
-              <span>折りたたむ</span>
-            </button>
-          </div>}
+              <AddPropertyButton onAdd={handleAddProperty} />
 
-          {loaded && editor ? (
-            <EditorContent editor={editor} />
+              <button
+                onClick={() => setMetaExpanded(false)}
+                className="flex items-center gap-1.5 h-7 text-sm text-muted-foreground/30 hover:text-muted-foreground transition-colors cursor-pointer"
+              >
+                <ChevronUp className="size-3.5" />
+                <span>Hide metadata</span>
+              </button>
+            </div>
+          )}
+
+          {loaded ? (
+            <textarea
+              value={content}
+              onChange={handleContentChange}
+              onBlur={() => void save()}
+              spellCheck={false}
+              className="w-full min-h-[calc(100vh-280px)] resize-none bg-transparent border-none outline-none font-mono text-[14px] leading-6 text-foreground placeholder:text-muted-foreground/30"
+              placeholder="Write markdown here..."
+            />
           ) : (
             <div className="flex min-h-[240px] items-center justify-center">
-              <span className="text-sm text-muted-foreground">ノートを読み込み中...</span>
+              <span className="text-sm text-muted-foreground">Loading note...</span>
             </div>
           )}
         </div>
@@ -571,11 +506,9 @@ export function NoteEditor({
         embedded ? 'px-4 border-t border-border' : 'px-5 bg-background',
       )}>
         <span className="text-[10px] text-muted-foreground mr-3">
-          {saveStatus === 'saving' ? '保存中...' : saveStatus === 'saved' ? '保存済み' : ''}
+          {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : ''}
         </span>
-        <span className="text-[10px] text-muted-foreground tabular-nums">
-          {wordCount} 文字
-        </span>
+        <span className="text-[10px] text-muted-foreground tabular-nums">{wordCount} words</span>
       </div>
     </div>
   )
