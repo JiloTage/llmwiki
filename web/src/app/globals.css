@@ -352,6 +352,17 @@
 .wiki-content .footnotes ol { @apply space-y-2; }
 .wiki-content .footnotes li { @apply text-sm text-muted-foreground; }
 
+/* Wiki Mermaid diagrams */
+.wiki-content .mermaid-diagram {
+  @apply my-6 overflow-x-auto rounded-xl border border-border/70 bg-card/80 p-4 shadow-sm;
+}
+.wiki-content .mermaid-diagram svg {
+  @apply mx-auto h-auto max-w-full;
+}
+.wiki-content .mermaid-diagram-error {
+  @apply border-destructive/30 bg-destructive/5;
+}
+
 /* Blockquote styles (legacy) */
 .markdown-blockquote {
   border-left: 3px solid hsl(var(--accent-blue) / 0.4) !important;

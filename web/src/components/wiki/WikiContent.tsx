@@ -330,6 +330,114 @@ function WikiImage({
   )
 }
 
+function MermaidBlock({ chart }: { chart: string }) {
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const [svg, setSvg] = React.useState<string | null>(null)
+  const [error, setError] = React.useState<string | null>(null)
+  const [themeKey, setThemeKey] = React.useState(0)
+
+  React.useEffect(() => {
+    const root = document.documentElement
+    let lastIsDark = root.classList.contains('dark')
+
+    const observer = new MutationObserver(() => {
+      const nextIsDark = root.classList.contains('dark')
+      if (nextIsDark !== lastIsDark) {
+        lastIsDark = nextIsDark
+        setThemeKey((current) => current + 1)
+      }
+    })
+
+    observer.observe(root, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+
+  React.useEffect(() => {
+    let cancelled = false
+
+    const renderDiagram = async () => {
+      try {
+        setError(null)
+        setSvg(null)
+
+        const mermaidModule = await import('mermaid')
+        const mermaid = mermaidModule.default
+        const isDark = document.documentElement.classList.contains('dark')
+
+        mermaid.initialize({
+          startOnLoad: false,
+          securityLevel: 'strict',
+          theme: isDark ? 'dark' : 'default',
+          fontFamily: 'var(--font-geist-sans), sans-serif',
+        })
+
+        const renderId = `mermaid-${Math.random().toString(36).slice(2, 10)}`
+        const { svg: nextSvg, bindFunctions } = await mermaid.render(renderId, chart.trim())
+
+        if (cancelled) return
+
+        setSvg(nextSvg)
+        requestAnimationFrame(() => {
+          if (!cancelled && containerRef.current) {
+            bindFunctions?.(containerRef.current)
+          }
+        })
+      } catch (cause) {
+        if (cancelled) return
+        const message = cause instanceof Error ? cause.message : 'Unknown Mermaid render error'
+        setError(message)
+      }
+    }
+
+    void renderDiagram()
+
+    return () => {
+      cancelled = true
+    }
+  }, [chart, themeKey])
+
+  if (error) {
+    return (
+      <figure className="mermaid-diagram mermaid-diagram-error">
+        <figcaption className="text-xs font-medium text-destructive mb-3">
+          Mermaid diagram failed to render: {error}
+        </figcaption>
+        <pre className="text-[13px] leading-relaxed bg-muted/60 border border-border rounded-lg p-4 overflow-x-auto">
+          <code>{chart}</code>
+        </pre>
+      </figure>
+    )
+  }
+
+  if (!svg) {
+    return (
+      <div
+        className="mermaid-diagram flex items-center justify-center min-h-40 text-sm text-muted-foreground"
+        data-testid="mermaid-diagram"
+        aria-busy="true"
+      >
+        Rendering diagram...
+      </div>
+    )
+  }
+
+  return (
+    <figure className="mermaid-diagram" data-testid="mermaid-diagram">
+      <div ref={containerRef} dangerouslySetInnerHTML={{ __html: svg }} />
+    </figure>
+  )
+}
+
+function extractMermaidChart(children: React.ReactNode): string | null {
+  const child = React.Children.toArray(children)[0]
+  if (!React.isValidElement(child)) return null
+
+  const props = child.props as { className?: string; children?: React.ReactNode }
+  if (!props.className?.split(' ').includes('language-mermaid')) return null
+
+  return childrenToText(props.children).trim()
+}
+
 interface WikiContentProps {
   content: string
   title: string
@@ -385,6 +493,11 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
         return <p className="my-2 leading-[1.65] text-foreground/90">{children}</p>
       },
       pre({ children, ...props }) {
+        const mermaidChart = extractMermaidChart(children)
+        if (mermaidChart) {
+          return <MermaidBlock chart={mermaidChart} />
+        }
+
         return (
           <pre
             className="text-[13px] leading-relaxed my-3 bg-muted/60 border border-border rounded-lg p-4 overflow-x-auto"

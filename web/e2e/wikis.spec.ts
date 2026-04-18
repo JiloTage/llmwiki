@@ -19,6 +19,22 @@ async function resetKnowledgeBases(request: APIRequestContext) {
   }
 }
 
+async function listKnowledgeBases(request: APIRequestContext) {
+  const response = await request.get('/api/v1/knowledge-bases', {
+    headers: AUTH_HEADERS,
+  })
+  expect(response.ok()).toBeTruthy()
+  return (await response.json()) as Array<{ id: string; slug: string }>
+}
+
+async function listDocuments(request: APIRequestContext, knowledgeBaseId: string) {
+  const response = await request.get(`/api/v1/knowledge-bases/${knowledgeBaseId}/documents`, {
+    headers: AUTH_HEADERS,
+  })
+  expect(response.ok()).toBeTruthy()
+  return (await response.json()) as Array<{ id: string; filename: string; path: string }>
+}
+
 test.beforeEach(async ({ request, page }) => {
   await resetKnowledgeBases(request)
   await page.goto('/wikis')
@@ -61,4 +77,38 @@ test('creates an additional wiki from the list page and opens settings', async (
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'MCP Config' })).toBeVisible()
   await expect(page.getByText('MCP URL:')).toBeVisible()
+})
+
+test('renders mermaid code fences inside wiki pages', async ({ page, request }) => {
+  await page.getByTestId('quick-create-wiki').click()
+  await expect(page).toHaveURL(/\/wikis\/local-wiki(?:\?.*)?$/)
+
+  const knowledgeBases = await listKnowledgeBases(request)
+  const knowledgeBase = knowledgeBases.find((kb) => kb.slug === 'local-wiki')
+  expect(knowledgeBase).toBeTruthy()
+
+  const documents = await listDocuments(request, knowledgeBase!.id)
+  const overview = documents.find((doc) => doc.path === '/wiki/' && doc.filename === 'overview.md')
+  expect(overview).toBeTruthy()
+
+  const updateResponse = await request.put(`/api/v1/documents/${overview!.id}/content`, {
+    headers: {
+      ...AUTH_HEADERS,
+      'Content-Type': 'application/json',
+    },
+    data: {
+      content: `# Overview
+
+\`\`\`mermaid
+flowchart TD
+  Start[Start] --> Finish[Finish]
+\`\`\`
+`,
+    },
+  })
+  expect(updateResponse.ok()).toBeTruthy()
+
+  await page.reload()
+  await expect(page.getByTestId('mermaid-diagram')).toBeVisible()
+  await expect(page.locator('[data-testid="mermaid-diagram"] svg')).toBeVisible()
 })
