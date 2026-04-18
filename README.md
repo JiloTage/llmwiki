@@ -1,172 +1,211 @@
 # LLM Wiki
 
-[![Live Demo](https://img.shields.io/badge/demo-llmwiki.app-blue)](https://llmwiki.app)
-[![License](https://img.shields.io/badge/license-Apache%202.0-green)](https://opensource.org/licenses/Apache-2.0)
+LLM 向けの個人用 Wiki システムです。  
+テキストソースと Markdown の Wiki ページを管理し、`guide` / `search` / `read` / `write` / `delete` の操作面を UI・HTTP API・MCP から使えるようにしています。
 
-[Karpathy's LLM Wiki](https://x.com/karpathy/status/2039805659525644595)（[仕様](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)）を実装した、無料のオープンソースプロジェクトです。公開版は [llmwiki.app](https://llmwiki.app) で利用できます。
+![LLM Wiki](wiki-page.png)
 
-1. **ソースをアップロード**: PDF、記事、ノート、Office 文書を追加し、フル機能のドキュメントビューアで確認できます。
-2. **Claude と接続**: MCP 経由で Claude を接続すると、ソースを読み込み、Wiki ページを生成し、相互参照や引用を保守します。
-3. **Wiki が蓄積される**: 追加するソースや投げる質問ごとに Wiki が豊かになり、知識が再利用可能な形で積み上がります。
+## 現在の構成
 
-![LLM Wiki の画面例](wiki-page.png)
+このリポジトリには 2 系統の実装があります。
 
-### 3 つのレイヤー
+- `web/`
+  現在の主系です。Next.js 16 を Cloudflare Workers 上で動かし、D1 をデータストアとして使います。`/api/v1/*` の Route Handlers を内包しています。
+- `api/`
+  FastAPI ベースの API 実装です。Postgres 前提で、`/v1/*` エンドポイントを提供します。既存テストも主にこちらを対象にしています。
+- `mcp/`
+  FastMCP ベースの MCP サーバーです。`guide`, `search`, `read`, `write`, `delete` を公開します。
+- `converter/`
+  LibreOffice を使って Office 文書を PDF に変換する補助サービスです。必要な場合のみ使います。
+- `tests/`
+  unit / integration テストです。
+- `docs/gpt-actions/`
+  GPT Actions 用のメモとプロンプトです。
 
-| レイヤー | 説明 |
-|-------|-------------|
-| **生のソース** | PDF、記事、ノート、文字起こしなど。変更されない一次情報であり、LLM は読むだけで書き換えません。 |
-| **Wiki** | 要約、エンティティページ、相互参照、Mermaid 図、表などを含む LLM 生成の Markdown ページ群です。 |
-| **ツール群** | 検索、読み取り、書き込みを担います。Claude は MCP 経由で接続し、全体をオーケストレーションします。 |
+## 現在の前提
 
-### 主要な操作
+- 個人利用前提です。
+- 認証は単一共有トークンです。
+- Bearer トークンは `LOCAL_ACCESS_TOKEN` だけを使います。
+- API は常に `LOCAL_USER_ID` の単一ユーザーとして動作します。
+- マルチユーザー化、JWT 認証、複雑な権限モデルは現行コードの前提ではありません。
 
-LLM Wiki には Claude.ai が直接接続できる **MCP サーバー** が含まれています。接続後、Claude はナレッジボルト全体に対して検索、読み取り、書き込み、削除を行えます。以下の操作はすべて Claude 経由で進みます。
+## 主な機能
 
-**取り込み**: ソースを追加すると、Claude が読み込み、要約を書き、Wiki 全体のエンティティや概念ページを更新し、既存知識と矛盾する点を指摘します。1 つのソースが 10〜15 ページに影響することもあります。
+- Knowledge Base の作成・更新・削除
+- `/wiki/overview.md` と `/wiki/log.md` を含む Wiki の自動初期化
+- `.md` / `.txt` を中心にしたノート作成と編集
+- チャンク化 + 全文検索
+  - `api/` では Postgres 上の `document_chunks`
+  - `web/` では D1 + FTS5
+- Wiki 用 action API
+  - `guide`
+  - `search`
+  - `read`
+  - `write`
+  - `delete`
+- MCP 経由での同等操作
 
-**問い合わせ**: すでに統合済みの Wiki に対して複雑な質問を投げられます。知識は毎回生データから再導出されるのではなく整理済みで、良い回答は新規ページとして蓄積されます。
+## API の見方
 
-**点検**: 健全性チェックを実行し、一貫しないデータ、古い主張、孤立ページ、欠落した相互参照を検出します。Claude は次に調べるべき問いや追加すべきソースも提案します。
+実装ごとにパスが少し違います。
 
----
+- `web/` 側: `/api/v1/*`
+  - 例: `/api/v1/knowledge-bases`
+  - 例: `/api/v1/actions/search`
+- `api/` 側: `/v1/*`
+  - 例: `/v1/knowledge-bases`
+  - 例: `/v1/actions/search`
 
-## アーキテクチャ
+FastAPI 側で公開されている主なルート:
 
-### 仕様書
-
-- Cloudflare Workers + D1 への移行方針は [docs/cloudflare-d1-migration-spec.md](docs/cloudflare-d1-migration-spec.md) を正本とする
-- OpenNext の Cloudflare build は Windows ネイティブ環境で失敗することがあるため、`opennextjs-cloudflare build` / `deploy` は WSL か Linux CI を前提にする
-
-| コンポーネント | スタック | 役割 |
-|-----------|-------|------------------|
-| **Web** (`web/`) | Next.js 16, React 19, Tailwind, Radix UI | ダッシュボード、PDF/HTML ビューア、Wiki レンダラ、オンボーディング |
-| **API** (`api/`) | FastAPI, asyncpg, aioboto3 | 認証、アップロード（TUS）、ドキュメント処理、OCR（Mistral） |
-| **Converter** (`converter/`) | FastAPI, LibreOffice | 分離された Office→PDF 変換サービス |
-| **MCP** (`mcp/`) | MCP SDK, Supabase OAuth | Claude 向けツール: `guide`, `search`, `read`, `write`, `delete` |
-| **Database** | Supabase (Postgres + RLS + PGroonga) | ドキュメント、チャンク、ナレッジベース、ユーザー管理 |
-| **Storage** | S3 互換ストレージ | 生ファイル、タグ付き HTML、抽出画像の保存 |
-
----
+- `/health`
+- `/v1/me`
+- `/v1/onboarding/complete`
+- `/v1/usage`
+- `/v1/admin/stats`
+- `/v1/knowledge-bases/*`
+- `/v1/api-keys/*`
+- `/v1/actions/*`
 
 ## MCP ツール
 
-接続後、Claude はナレッジボルト全体にアクセスできます。
+`mcp/` では次のツールを提供します。
 
-| ツール | 説明 |
-|------|-------------|
-| `guide` | Wiki の仕組みと利用可能なナレッジベースを説明します |
-| `search` | ファイル一覧の参照や、PGroonga ランキングを使ったキーワード検索を行います |
-| `read` | PDF のページ範囲指定、画像付きの読み取り、glob での一括読み取りに対応します |
-| `write` | Wiki ページの作成、`str_replace` による編集、追記を行います。SVG と CSV アセットにも対応します |
-| `delete` | パスまたは glob パターンでドキュメントをアーカイブします |
+- `guide`
+- `search`
+- `read`
+- `write`
+- `delete`
 
----
+`guide` は Wiki の運用ルールと利用可能な Knowledge Base 一覧を返します。  
+`search` / `read` / `write` / `delete` は `api/routes/actions.py` と同系統の振る舞いです。
 
-## はじめ方
+## ローカル開発
 
-LLM Wiki を最速で試す手順:
+### 1. 共通環境変数
 
-1. [llmwiki.app](https://llmwiki.app) で **サインアップ** し、ナレッジベースを作成する
-2. **ソースをアップロード** する
-3. **Claude と接続** する: 設定画面で MCP 設定をコピーし、Claude.ai にコネクタとして追加する
-4. **構築を開始** する: Claude にソースを読ませ、Wiki を構築するよう依頼する
+ルートの `.env.example` をコピーして `.env` を作成します。
 
-ローカルセットアップは不要です。
-
-### セルフホスト
-
-#### 前提条件
-
-- Python 3.11+
-- Node.js 20+
-- [Supabase](https://supabase.com) プロジェクト、またはローカル Docker 環境
-- S3 互換バケット（ファイルアップロード用）
-
-#### 1. Database
-
-```bash
-psql $DATABASE_URL -f supabase/migrations/001_initial.sql
+```powershell
+Copy-Item .env.example .env
 ```
 
-またはローカル Docker を使う場合:
-
-```bash
-docker compose up -d
-```
-
-#### 2. API
-
-```bash
-cd api
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp ../.env.example .env
-uvicorn main:app --reload --port 8000
-```
-
-#### 3. MCP Server
-
-```bash
-cd mcp
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn server:app --reload --port 8080
-```
-
-#### 4. Web
-
-```bash
-cd web
-npm install
-cp .env.example .env.local
-npm run dev
-```
-
-#### 5. Claude を接続
-
-1. Claude の **Settings** > **Connectors** を開く
-2. `http://localhost:8080/mcp` を向き先にしたカスタムコネクタを追加する
-3. 案内に従って Supabase アカウントでサインインする
-
-#### 環境変数
-
-**API** (`api/.env`)
+最低限よく使う値:
 
 ```env
-DATABASE_URL=postgresql://...
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/supavault
 LOCAL_USER_ID=00000000-0000-4000-8000-000000000001
 LOCAL_USER_EMAIL=local@llmwiki.local
 LOCAL_USER_NAME=Local User
-MISTRAL_API_KEY=
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_REGION=us-east-1
-S3_BUCKET=your-bucket
+LOCAL_ACCESS_TOKEN=local-dev-session
 APP_URL=http://localhost:3000
-CONVERTER_URL=
+MCP_URL=http://localhost:8080/mcp
 ```
 
-**Web** (`web/.env.local`)
+### 2. Postgres を使う場合
+
+ローカル DB を使うなら、付属の `docker-compose.yml` で起動できます。
+
+```powershell
+docker compose up -d
+```
+
+### 3. FastAPI API
+
+```powershell
+cd api
+python -m venv .venv
+.\.venv\Scripts\pip.exe install -r requirements.txt
+.\.venv\Scripts\uvicorn.exe main:app --reload --port 8000
+```
+
+### 4. MCP Server
+
+```powershell
+cd mcp
+python -m venv .venv
+.\.venv\Scripts\pip.exe install -r requirements.txt
+.\.venv\Scripts\uvicorn.exe server:app --reload --port 8080
+```
+
+### 5. Web
+
+`web/` は現在の主系です。Next.js 開発サーバーは次で起動します。
+
+```powershell
+cd web
+npm install
+npm run dev
+```
+
+必要なら `web/.env.local` に以下を設定してください。
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
+APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_MCP_URL=http://localhost:8080/mcp
 NEXT_PUBLIC_LOCAL_USER_ID=00000000-0000-4000-8000-000000000001
 NEXT_PUBLIC_LOCAL_USER_EMAIL=local@llmwiki.local
+LOCAL_ACCESS_TOKEN=local-dev-session
 NEXT_PUBLIC_LOCAL_ACCESS_TOKEN=local-dev-session
 ```
 
----
+### 6. Converter
 
-## この構成が機能する理由
+Office → PDF 変換が必要な場合だけ起動します。LibreOffice が必要です。
 
-ナレッジベース運用で面倒なのは、読むことや考えることそのものではなく、保守の細かい帳尻合わせです。相互参照の更新、要約の鮮度維持、新しいデータが古い主張と矛盾したときの検出、複数ページ間の整合性維持などが負担になります。
+```powershell
+cd converter
+python -m venv .venv
+.\.venv\Scripts\pip.exe install -r requirements.txt
+.\.venv\Scripts\uvicorn.exe main:app --reload --port 8090
+```
 
-個人 Wiki が放棄されがちなのは、保守コストの増え方が価値の増え方を上回るからです。LLM は退屈せず、相互参照の更新も忘れず、1 回で多数のファイルに手を入れられます。保守コストがほぼゼロに近づくことで、Wiki を維持し続けられます。
+## テスト
 
-人間の役割はソースを集め、分析の方向を決め、良い問いを立て、意味を考えることです。それ以外の大半を LLM が担います。
+このリポジトリの CI は現在 `api/` のテストを主に見ています。
 
-## ライセンス
+全体テスト:
+
+```powershell
+.\api\.venv\Scripts\python.exe -m pytest tests\unit tests\integration
+```
+
+特定テスト:
+
+```powershell
+.\api\.venv\Scripts\python.exe -m pytest tests\integration\isolation\test_actions_api.py
+```
+
+テスト用 DB だけ起動する場合:
+
+```powershell
+docker compose -f docker-compose.test.yml up -d
+```
+
+## Cloudflare Workers + D1
+
+現在のデプロイ主系は `web/` です。
+
+- Worker 設定: `web/wrangler.jsonc`
+- D1 schema: `web/migrations/0001_init.sql`
+- デプロイ workflow: `.github/workflows/cloudflare-deploy.yml`
+
+詳細は次を参照してください。
+
+- [docs/cloudflare-d1-migration-spec.md](docs/cloudflare-d1-migration-spec.md)
+- [docs/cloudflare-deploy-runbook.md](docs/cloudflare-deploy-runbook.md)
+
+## 参考ファイル
+
+- 認証: `api/auth.py`
+- FastAPI 設定: `api/config.py`
+- FastAPI action API: `api/routes/actions.py`
+- MCP サーバー: `mcp/server.py`
+- MCP ツール登録: `mcp/tools/__init__.py`
+- Web 側 API 実装: `web/src/lib/server/llmwiki.ts`
+
+## License
 
 Apache 2.0
