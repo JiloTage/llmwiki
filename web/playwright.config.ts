@@ -7,6 +7,7 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   workers: 1,
+  globalSetup: './e2e/global-setup.mjs',
   globalTeardown: './e2e/global-teardown.mjs',
   timeout: 30_000,
   expect: {
@@ -17,29 +18,23 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:3000',
     trace: 'on-first-retry',
   },
-  webServer: [
-    {
-      command: 'node ./e2e/start-api-server.mjs',
-      url: 'http://127.0.0.1:8000/health',
-      reuseExistingServer: false,
-      timeout: 180_000,
-      cwd: rootDir,
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://127.0.0.1:3000',
+    reuseExistingServer: false,
+    timeout: 180_000,
+    cwd: rootDir,
+    env: {
+      ...process.env,
+      APP_URL: 'http://127.0.0.1:3000',
+      NEXT_PUBLIC_APP_URL: 'http://127.0.0.1:3000',
+      LOCAL_ACCESS_TOKEN: 'local-dev-session',
+      NEXT_PUBLIC_LOCAL_USER_ID: '00000000-0000-4000-8000-000000000001',
+      NEXT_PUBLIC_LOCAL_USER_EMAIL: 'local@llmwiki.local',
+      NEXT_PUBLIC_LOCAL_ACCESS_TOKEN: 'local-dev-session',
+      NEXT_PUBLIC_MCP_URL: 'http://127.0.0.1:8080/mcp',
     },
-    {
-      command: 'npm run dev',
-      url: 'http://127.0.0.1:3000',
-      reuseExistingServer: false,
-      timeout: 180_000,
-      cwd: rootDir,
-      env: {
-        ...process.env,
-        NEXT_PUBLIC_API_URL: 'http://127.0.0.1:8000',
-        NEXT_PUBLIC_LOCAL_USER_ID: '00000000-0000-4000-8000-000000000001',
-        NEXT_PUBLIC_LOCAL_USER_EMAIL: 'local@llmwiki.local',
-        NEXT_PUBLIC_LOCAL_ACCESS_TOKEN: 'local-dev-session',
-      },
-    },
-  ],
+  },
   projects: [
     {
       name: 'chromium',

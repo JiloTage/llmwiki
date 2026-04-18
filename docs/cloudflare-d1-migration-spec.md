@@ -5,6 +5,8 @@
 
 この文書は `llmwiki` を Cloudflare Workers + D1 に移行するための確定仕様である。以後の実装はこの文書に従う。新しい判断が必要になった場合は、先にこの文書を更新してから実装する。
 
+実際のデプロイ手順は [cloudflare-deploy-runbook.md](./cloudflare-deploy-runbook.md) を参照する。
+
 ## 1. 前提
 
 - 用途は完全個人用とする。
