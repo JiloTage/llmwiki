@@ -5,8 +5,6 @@ import {
   requireAccessToken,
 } from "@/lib/server/llmwiki";
 
-export const runtime = "edge";
-
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },

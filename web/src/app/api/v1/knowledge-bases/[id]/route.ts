@@ -6,8 +6,6 @@ import {
   updateKnowledgeBase,
 } from "@/lib/server/llmwiki";
 
-export const runtime = "edge";
-
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },

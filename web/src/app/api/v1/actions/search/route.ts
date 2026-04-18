@@ -5,8 +5,6 @@ import {
   searchAction,
 } from "@/lib/server/llmwiki";
 
-export const runtime = "edge";
-
 export async function POST(request: Request) {
   try {
     await requireAccessToken(request);
