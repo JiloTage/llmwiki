@@ -1,13 +1,8 @@
 import type { NextConfig } from "next";
-import path from "path";
-import { withSentryConfig } from "@sentry/nextjs";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
-const nextConfig: NextConfig = {
-  output: "standalone",
-  outputFileTracingRoot: path.join(__dirname),
-};
+initOpenNextCloudflareForDev();
 
-export default withSentryConfig(nextConfig, {
-  silent: true,
-  disableLogger: true,
-});
+const nextConfig: NextConfig = {};
+
+export default nextConfig;

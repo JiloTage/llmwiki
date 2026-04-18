@@ -168,7 +168,7 @@ export function NoteEditor({
 
       try {
         const { content } = await apiFetch<{ id: string; content: string; version: number }>(
-          `/v1/documents/${documentId}/content`,
+          `/api/v1/documents/${documentId}/content`,
           token,
         )
 
@@ -220,7 +220,7 @@ export function NoteEditor({
 
     try {
       const promises: Promise<unknown>[] = [
-        apiFetch(`/v1/documents/${documentId}/content`, token, {
+        apiFetch(`/api/v1/documents/${documentId}/content`, token, {
           method: 'PUT',
           body: JSON.stringify({ content: frontmatterRef.current + latestContentRef.current }),
         }),
@@ -229,7 +229,7 @@ export function NoteEditor({
       if (shouldPatchMeta) {
         const hasProps = Object.keys(latestPropertiesRef.current).length > 0
         promises.push(
-          apiFetch(`/v1/documents/${documentId}`, token, {
+          apiFetch(`/api/v1/documents/${documentId}`, token, {
             method: 'PATCH',
             body: JSON.stringify({
               title: latestTitleRef.current || null,
@@ -274,7 +274,7 @@ export function NoteEditor({
 
           try {
             const promises: Promise<unknown>[] = [
-              apiFetch(`/v1/documents/${docId}/content`, token, {
+              apiFetch(`/api/v1/documents/${docId}/content`, token, {
                 method: 'PUT',
                 body: JSON.stringify({ content: frontmatter + contentToSave }),
               }),
@@ -283,7 +283,7 @@ export function NoteEditor({
             if (shouldPatchMeta) {
               const hasProps = Object.keys(propsToSave).length > 0
               promises.push(
-                apiFetch(`/v1/documents/${docId}`, token, {
+                apiFetch(`/api/v1/documents/${docId}`, token, {
                   method: 'PATCH',
                   body: JSON.stringify({
                     title: titleToSave || null,

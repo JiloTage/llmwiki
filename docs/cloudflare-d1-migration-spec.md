@@ -554,6 +554,10 @@ npx wrangler d1 execute llmwiki --file=./web/migrations/0001_init.sql
 npx wrangler deploy
 ```
 
+Windows 補足:
+- OpenNext の Cloudflare build は Windows ネイティブ環境で `copyfile` / `symlink` エラーになることがある
+- `opennextjs-cloudflare build` / `deploy` は WSL か Linux CI 上で実行する前提にする
+
 ## 20. 実装時の禁止事項
 
 - `/v1/*` と `/api/v1/*` を混在させない

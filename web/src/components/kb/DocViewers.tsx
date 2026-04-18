@@ -17,7 +17,7 @@ function useDocumentUrl(documentId: string) {
   React.useEffect(() => {
     if (!token) return
     let cancelled = false
-    apiFetch<{ url: string }>(`/v1/documents/${documentId}/url`, token)
+    apiFetch<{ url: string }>(`/api/v1/documents/${documentId}/url`, token)
       .then((res) => { if (!cancelled) setUrl(res.url) })
       .catch(() => { if (!cancelled) setError(true) })
     return () => { cancelled = true }
@@ -90,7 +90,7 @@ export function ContentViewer({ documentId, title, fileType }: { documentId: str
   React.useEffect(() => {
     if (!token) return
     let cancelled = false
-    apiFetch<{ content: string }>(`/v1/documents/${documentId}/content`, token)
+    apiFetch<{ content: string }>(`/api/v1/documents/${documentId}/content`, token)
       .then((res) => { if (!cancelled) setContent(res.content ?? '') })
       .catch(() => { if (!cancelled) setError(true) })
     return () => { cancelled = true }

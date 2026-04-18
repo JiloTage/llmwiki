@@ -1,6 +1,5 @@
 export interface KnowledgeBase {
   id: string
-  user_id: string
   name: string
   slug: string
   description: string | null
@@ -13,12 +12,10 @@ export interface KnowledgeBase {
 export interface Document {
   id: string
   knowledge_base_id: string
-  user_id: string
   filename: string
   title: string | null
   path: string
   file_type: string
-  file_size: number
   status: string
   page_count: number | null
   content: string | null
@@ -28,7 +25,6 @@ export interface Document {
   error_message: string | null
   url: string | null
   version: number
-  document_number: number | null
   sort_order: number | null
   archived: boolean
   created_at: string

@@ -20,7 +20,7 @@ export function useKBDocuments(knowledgeBaseId: string) {
 
     try {
       const data = await apiFetch<DocumentListItem[]>(
-        `/v1/knowledge-bases/${knowledgeBaseId}/documents`,
+        `/api/v1/knowledge-bases/${knowledgeBaseId}/documents`,
         token,
       )
       setDocuments(data ?? [])
@@ -37,14 +37,6 @@ export function useKBDocuments(knowledgeBaseId: string) {
     setLoading(true)
     void fetchDocuments()
   }, [fetchDocuments])
-
-  React.useEffect(() => {
-    if (!knowledgeBaseId || !token) return
-    const interval = window.setInterval(() => {
-      void fetchDocuments()
-    }, 5000)
-    return () => window.clearInterval(interval)
-  }, [fetchDocuments, knowledgeBaseId, token])
 
   const refetchDocuments = React.useCallback(() => {
     void fetchDocuments()

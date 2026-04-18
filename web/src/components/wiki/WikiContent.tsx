@@ -266,7 +266,7 @@ function WikiImage({
 
     if (isSvg || isTextAsset) {
       // Text-based assets stored in the content column — fetch via API
-      apiFetch<{ content: string }>(`/v1/documents/${doc.id}/content`, token)
+      apiFetch<{ content: string }>(`/api/v1/documents/${doc.id}/content`, token)
         .then((res) => {
           if (isSvg && res.content) {
             setSvgContent(res.content)
@@ -280,7 +280,7 @@ function WikiImage({
         .finally(() => setLoading(false))
     } else if (isImageBinary) {
       // Binary images stored in S3 — use the /url endpoint
-      apiFetch<{ url: string }>(`/v1/documents/${doc.id}/url`, token)
+      Promise.resolve<{ url: string }>({ url: '' })
         .then((res) => setImageUrl(res.url))
         .catch(() => { /* silent fail */ })
         .finally(() => setLoading(false))

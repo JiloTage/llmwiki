@@ -1,0 +1,17 @@
+{
+  "name": "llmwiki",
+  "main": ".open-next/worker.js",
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "compatibility_date": "2026-04-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "llmwiki",
+      "database_id": "REPLACE_ME"
+    }
+  ]
+}
