@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import dynamic from 'next/dynamic'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Upload as UploadIcon, BookOpen, ArrowUpRight, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -9,9 +10,14 @@ import { useKBDocuments } from '@/hooks/useKBDocuments'
 import { apiFetch } from '@/lib/api'
 import { KBSidenav } from '@/components/kb/KBSidenav'
 import { SelectionActionBar } from '@/components/kb/SelectionActionBar'
-import { WikiContent, extractTocFromMarkdown } from '@/components/wiki/WikiContent'
 import { NoteEditor } from '@/components/editor/NoteEditor'
+import { extractTocFromMarkdown } from '@/lib/wiki'
 import type { DocumentListItem, DocumentSummary, WikiNode, WikiSubsection } from '@/lib/types'
+
+const WikiContent = dynamic(
+  () => import('@/components/wiki/WikiContent').then((module) => module.WikiContent),
+  { ssr: false },
+)
 
 function getWikiPathStorageKey(kbId: string): string {
   return `llmwiki:active-wiki-path:${kbId}`
