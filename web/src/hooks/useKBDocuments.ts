@@ -6,9 +6,9 @@ import { apiFetch } from '@/lib/api'
 import { useUserStore } from '@/stores'
 import type { DocumentListItem } from '@/lib/types'
 
-export function useKBDocuments(knowledgeBaseId: string) {
-  const [documents, setDocuments] = React.useState<DocumentListItem[]>([])
-  const [loading, setLoading] = React.useState(true)
+export function useKBDocuments(knowledgeBaseId: string, initialDocuments?: DocumentListItem[]) {
+  const [documents, setDocuments] = React.useState<DocumentListItem[]>(() => initialDocuments ?? [])
+  const [loading, setLoading] = React.useState(initialDocuments === undefined)
   const token = useUserStore((s) => s.accessToken)
 
   const fetchDocuments = React.useCallback(async () => {
@@ -34,9 +34,10 @@ export function useKBDocuments(knowledgeBaseId: string) {
   }, [knowledgeBaseId, token])
 
   React.useEffect(() => {
+    if (initialDocuments !== undefined) return
     setLoading(true)
     void fetchDocuments()
-  }, [fetchDocuments])
+  }, [fetchDocuments, initialDocuments])
 
   const refetchDocuments = React.useCallback(() => {
     void fetchDocuments()

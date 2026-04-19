@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { LOCAL_ACCESS_TOKEN } from '@/lib/local-user'
-import { useKBStore, useUserStore } from '@/stores'
+import { useUserStore } from '@/stores'
 
 interface AuthProviderProps {
   userId: string
@@ -15,7 +15,6 @@ export function AuthProvider({ userId, email, children }: AuthProviderProps) {
   const setAccessToken = useUserStore((s) => s.setAccessToken)
   const setAuthLoading = useUserStore((s) => s.setAuthLoading)
   const setOnboarded = useUserStore((s) => s.setOnboarded)
-  const fetchKBs = useKBStore((s) => s.fetchKBs)
   const initialized = React.useRef(false)
 
   React.useEffect(() => {
@@ -26,10 +25,8 @@ export function AuthProvider({ userId, email, children }: AuthProviderProps) {
     setAccessToken(LOCAL_ACCESS_TOKEN)
     setAuthLoading(false)
     setOnboarded(true)
-    fetchKBs()
   }, [
     email,
-    fetchKBs,
     setAccessToken,
     setAuthLoading,
     setOnboarded,

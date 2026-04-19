@@ -47,14 +47,28 @@ type Props = {
   kbSlug: string
   kbName: string
   requestedPath: string
+  initialDocuments?: DocumentListItem[]
+  initialPageContent?: string
+  initialPageContentDocumentId?: string | null
 }
 
-export function KBPageView({ kbId, kbSlug, kbName, requestedPath }: Props) {
+export function KBPageView({
+  kbId,
+  kbSlug,
+  kbName,
+  requestedPath,
+  initialDocuments,
+  initialPageContent,
+  initialPageContentDocumentId,
+}: Props) {
   const router = useRouter()
   const token = useUserStore((s) => s.accessToken)
-  const { documents, loading } = useKBDocuments(kbId)
-  const [pageContent, setPageContent] = React.useState('')
+  const { documents, loading } = useKBDocuments(kbId, initialDocuments)
+  const [pageContent, setPageContent] = React.useState(initialPageContent ?? '')
   const [pageLoading, setPageLoading] = React.useState(false)
+  const [loadedDocumentId, setLoadedDocumentId] = React.useState<string | null>(
+    initialPageContentDocumentId ?? null,
+  )
 
   const document = React.useMemo(
     () => documents.find((item) => buildDocumentPath(item.path, item.filename) === requestedPath) ?? null,
@@ -69,15 +83,20 @@ export function KBPageView({ kbId, kbSlug, kbName, requestedPath }: Props) {
   React.useEffect(() => {
     if (!token || !document || !document.path.startsWith('/wiki/')) {
       setPageContent('')
+      setLoadedDocumentId(null)
       return
     }
+    if (loadedDocumentId === document.id) return
 
     setPageLoading(true)
     apiFetch<{ content: string }>(`/api/v1/documents/${document.id}/content`, token)
-      .then((response) => setPageContent(response.content || ''))
+      .then((response) => {
+        setPageContent(response.content || '')
+        setLoadedDocumentId(document.id)
+      })
       .catch(() => setPageContent('Failed to load this wiki page.'))
       .finally(() => setPageLoading(false))
-  }, [document, token])
+  }, [document, loadedDocumentId, token])
 
   const handleWikiNavigate = React.useCallback((href: string) => {
     const nextPath = resolveDocumentPath(requestedPath, href)
@@ -138,6 +157,7 @@ export function KBPageView({ kbId, kbSlug, kbName, requestedPath }: Props) {
         <div className="h-[calc(100%-3.5rem)]">
           <NoteEditor
             documentId={document.id}
+            initialContent={initialPageContentDocumentId === document.id ? initialPageContent : undefined}
             initialTitle={document.title ?? document.filename}
             initialTags={document.tags}
             initialDate={document.date}

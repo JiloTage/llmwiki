@@ -1,40 +1,38 @@
-'use client'
-
-import * as React from 'react'
-import { useParams } from 'next/navigation'
-import { useKBStore, useUserStore } from '@/stores'
 import { KBPortal } from '@/components/kb/KBPortal'
-import { Loader2 } from 'lucide-react'
+import { KnowledgeBaseStoreHydrator } from '@/components/kb/KnowledgeBaseStoreHydrator'
+import { listDocuments, listKnowledgeBases } from '@/lib/server/llmwiki'
 
-export default function KBPage() {
-  const params = useParams<{ slug: string }>()
-  const knowledgeBases = useKBStore((s) => s.knowledgeBases)
-  const loading = useKBStore((s) => s.loading)
-  const user = useUserStore((s) => s.user)
-
-  const kb = React.useMemo(
-    () => knowledgeBases.find((k) => k.slug === params.slug),
-    [knowledgeBases, params.slug]
-  )
-
-  if (loading || !user) {
-    return (
-      <div className="flex items-center justify-center h-full bg-background">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
+export default async function KBPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  const knowledgeBases = await listKnowledgeBases()
+  const kb = knowledgeBases.find((item) => item.slug === slug)
 
   if (!kb) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2 bg-background">
         <h1 className="text-lg font-medium">Wiki not found</h1>
         <p className="text-sm text-muted-foreground">
-          The wiki &ldquo;{params.slug}&rdquo; does not exist or you don&apos;t have access.
+          The wiki &ldquo;{slug}&rdquo; does not exist or you don&apos;t have access.
         </p>
       </div>
     )
   }
 
-  return <KBPortal key={kb.id} kbId={kb.id} kbSlug={kb.slug} kbName={kb.name} />
+  const documents = await listDocuments(kb.id)
+
+  return (
+    <>
+      <KnowledgeBaseStoreHydrator knowledgeBases={knowledgeBases} />
+      <KBPortal
+        kbId={kb.id}
+        kbSlug={kb.slug}
+        kbName={kb.name}
+        initialDocuments={documents}
+      />
+    </>
+  )
 }

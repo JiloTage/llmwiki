@@ -1,35 +1,25 @@
-'use client'
-
-import * as React from 'react'
-import { useParams } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
-import { useKBStore, useUserStore } from '@/stores'
 import { KBPageView } from '@/components/kb/KBPageView'
+import { KnowledgeBaseStoreHydrator } from '@/components/kb/KnowledgeBaseStoreHydrator'
+import { getDocumentContent, listDocuments, listKnowledgeBases } from '@/lib/server/llmwiki'
 
 function normalizeRequestedPath(pathSegments: string[] | undefined): string {
   if (!pathSegments || pathSegments.length === 0) return '/'
   return `/${pathSegments.map((segment) => decodeURIComponent(segment)).join('/')}`
 }
 
-export default function FilePage() {
-  const params = useParams<{ slug: string; path: string[] }>()
-  const knowledgeBases = useKBStore((s) => s.knowledgeBases)
-  const loading = useKBStore((s) => s.loading)
-  const user = useUserStore((s) => s.user)
-  const requestedPath = React.useMemo(() => normalizeRequestedPath(params.path), [params.path])
+function buildDocumentPath(path: string, filename: string): string {
+  return `${path}${filename}`.replace(/\/+/g, '/')
+}
 
-  const kb = React.useMemo(
-    () => knowledgeBases.find((item) => item.slug === params.slug),
-    [knowledgeBases, params.slug],
-  )
-
-  if (loading || !user) {
-    return (
-      <div className="flex h-full items-center justify-center bg-background">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
+export default async function FilePage({
+  params,
+}: {
+  params: Promise<{ slug: string; path: string[] }>
+}) {
+  const { slug, path } = await params
+  const requestedPath = normalizeRequestedPath(path)
+  const knowledgeBases = await listKnowledgeBases()
+  const kb = knowledgeBases.find((item) => item.slug === slug)
 
   if (!kb) {
     return (
@@ -39,12 +29,22 @@ export default function FilePage() {
     )
   }
 
+  const documents = await listDocuments(kb.id)
+  const document = documents.find((item) => buildDocumentPath(item.path, item.filename) === requestedPath) ?? null
+  const initialPageContent = document ? (await getDocumentContent(document.id)).content : undefined
+
   return (
-    <KBPageView
-      kbId={kb.id}
-      kbSlug={kb.slug}
-      kbName={kb.name}
-      requestedPath={requestedPath}
-    />
+    <>
+      <KnowledgeBaseStoreHydrator knowledgeBases={knowledgeBases} />
+      <KBPageView
+        kbId={kb.id}
+        kbSlug={kb.slug}
+        kbName={kb.name}
+        requestedPath={requestedPath}
+        initialDocuments={documents}
+        initialPageContent={initialPageContent}
+        initialPageContentDocumentId={document?.id ?? null}
+      />
+    </>
   )
 }

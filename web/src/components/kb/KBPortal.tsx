@@ -87,13 +87,13 @@ type Props = {
   kbId: string
   kbSlug: string
   kbName: string
+  initialDocuments?: DocumentListItem[]
 }
 
-export function KBPortal({ kbId, kbSlug, kbName }: Props) {
+export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const token = useUserStore((s) => s.accessToken)
-  const { documents, setDocuments, loading, refetchDocuments } = useKBDocuments(kbId)
+  const { documents, setDocuments, loading, refetchDocuments } = useKBDocuments(kbId, initialDocuments)
 
   const wikiDocs = React.useMemo(
     () => sortDocs(documents.filter((doc) => doc.path.startsWith('/wiki/') && !doc.archived && doc.file_type === 'md')),

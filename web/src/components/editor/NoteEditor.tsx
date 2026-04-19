@@ -82,7 +82,7 @@ export function NoteEditor({
   )
   const [metaExpanded, setMetaExpanded] = React.useState(false)
   const [calendarOpen, setCalendarOpen] = React.useState(false)
-  const [loaded, setLoaded] = React.useState(false)
+  const [loaded, setLoaded] = React.useState(initialContent !== undefined)
   const [saveStatus, setSaveStatus] = React.useState<'idle' | 'saving' | 'saved'>('idle')
 
   const frontmatterRef = React.useRef('')
