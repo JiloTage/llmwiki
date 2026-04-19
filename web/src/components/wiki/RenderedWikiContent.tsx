@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
+import { loadMermaid } from '@/lib/mermaid-loader'
 import { cn } from '@/lib/utils'
 import type { TocItem } from '@/lib/types'
 import { formatWikiPath } from '@/lib/wiki'
@@ -89,8 +90,7 @@ function useMermaidEnhancement(containerRef: React.RefObject<HTMLDivElement | nu
       const nodes = Array.from(container.querySelectorAll<HTMLElement>('[data-mermaid-chart]'))
       if (nodes.length === 0) return
 
-      const mermaidModule = await import('mermaid')
-      const mermaid = mermaidModule.default
+      const mermaid = await loadMermaid()
       const isDark = document.documentElement.classList.contains('dark')
 
       mermaid.initialize({

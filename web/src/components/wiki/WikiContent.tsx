@@ -7,6 +7,7 @@ import rehypeSanitize from 'rehype-sanitize'
 import type { Components } from 'react-markdown'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { FileText } from 'lucide-react'
+import { loadMermaid } from '@/lib/mermaid-loader'
 import { cn } from '@/lib/utils'
 import { apiFetch } from '@/lib/api'
 import { useUserStore } from '@/stores'
@@ -362,8 +363,7 @@ function MermaidBlock({ chart }: { chart: string }) {
         setError(null)
         setSvg(null)
 
-        const mermaidModule = await import('mermaid')
-        const mermaid = mermaidModule.default
+        const mermaid = await loadMermaid()
         const isDark = document.documentElement.classList.contains('dark')
 
         mermaid.initialize({
