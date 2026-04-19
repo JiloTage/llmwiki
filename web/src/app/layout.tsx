@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Source_Sans_3, Source_Serif_4 } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const sourceSans = Source_Sans_3({
+  variable: "--font-source-sans-3",
+  subsets: ["latin"],
+});
+
+const sourceSerif = Source_Serif_4({
+  variable: "--font-source-serif-4",
   subsets: ["latin"],
 });
 
@@ -16,11 +21,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "LLM Wiki",
-  description: "Karpathy の LLM Wiki を実装したオープンソース。ドキュメントをアップロードし、Claude と連携して蓄積型の Wiki を構築できます。",
+  description: "A personal wiki for text sources and curated markdown knowledge pages.",
   metadataBase: new URL("https://llmwiki.app"),
   openGraph: {
     title: "LLM Wiki",
-    description: "Karpathy の LLM Wiki を実装したオープンソース。ドキュメントをアップロードし、Claude と連携して蓄積型の Wiki を構築できます。",
+    description: "A personal wiki for text sources and curated markdown knowledge pages.",
     url: "https://llmwiki.app",
     siteName: "LLM Wiki",
     type: "website",
@@ -29,13 +34,11 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "LLM Wiki",
-    description: "Karpathy の LLM Wiki を実装したオープンソース。ドキュメントをアップロードし、Claude と連携して蓄積型の Wiki を構築できます。",
+    description: "A personal wiki for text sources and curated markdown knowledge pages.",
     images: ["/og.png"],
   },
 };
 
-// Script to prevent theme flash - runs before React hydrates
-// Must match the storageKey used by ThemeProvider (default is 'theme')
 const themeScript = `
   (function() {
     try {
@@ -44,7 +47,6 @@ const themeScript = `
       var isValid = stored === 'light' || stored === 'dark';
       var theme = isValid ? stored : 'light';
 
-      // Persist a sane default so a refresh doesn't fall back to light/system
       if (!isValid) {
         localStorage.setItem(storageKey, theme);
       }
@@ -54,7 +56,7 @@ const themeScript = `
       document.documentElement.style.colorScheme = theme;
     } catch (e) {
       document.documentElement.classList.add('light');
-      document.documentElement.style.colorScheme = 'dark';
+      document.documentElement.style.colorScheme = 'light';
     }
   })();
 `;
@@ -73,7 +75,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${sourceSans.variable} ${sourceSerif.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider
           attribute="class"

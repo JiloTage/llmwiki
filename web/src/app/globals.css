@@ -6,10 +6,9 @@
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-source-sans-3);
   --font-mono: var(--font-geist-mono);
 
-  /* Core UI tokens */
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
   --color-popover: hsl(var(--popover));
@@ -27,17 +26,14 @@
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
 
-  /* Charts already use full color functions, keep as-is */
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  /* Accent blue */
   --color-accent-blue: hsl(var(--accent-blue));
 
-  /* Sidebar tokens */
   --color-sidebar: hsl(var(--sidebar));
   --color-sidebar-foreground: hsl(var(--sidebar-foreground));
   --color-sidebar-primary: hsl(var(--sidebar-primary));
@@ -47,174 +43,237 @@
   --color-sidebar-border: hsl(var(--sidebar-border));
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
-  /* Radii passthrough */
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
 }
 
 :root {
-  --sidebar-width: 14rem;
-  --radius: 1rem;
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
+  --sidebar-width: 16rem;
+  --radius: 0.25rem;
 
-  /* Light theme — warm paper */
-  --background: 30 3% 96%;
-  --foreground: 20 14% 4%;
+  --background: 210 17% 98%;
+  --foreground: 210 8% 16%;
   --card: 0 0% 100%;
-  --card-foreground: 20 14% 10%;
+  --card-foreground: 210 8% 16%;
   --popover: 0 0% 100%;
-  --popover-foreground: 20 14% 10%;
-  --primary: 24 10% 10%;
-  --primary-foreground: 60 9% 98%;
-  --secondary: 30 6% 96%;
-  --secondary-foreground: 20 14% 10%;
-  --muted: 30 6% 96%;
-  --muted-foreground: 25 5% 45%;
-  --accent: 30 6% 94%;
-  --accent-foreground: 20 14% 10%;
-  --destructive: 0 84.2% 60.2%;
-  --border: 24 6% 83%;
-  --input: 24 6% 83%;
-  --ring: 25 5% 45%;
+  --popover-foreground: 210 8% 16%;
+  --primary: 210 8% 16%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 17% 96%;
+  --secondary-foreground: 210 8% 16%;
+  --muted: 220 13% 93%;
+  --muted-foreground: 210 5% 35%;
+  --accent: 220 13% 93%;
+  --accent-foreground: 210 8% 16%;
+  --destructive: 0 75% 42%;
+  --border: 214 10% 71%;
+  --input: 214 10% 79%;
+  --ring: 214 81% 43%;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --accent-blue: 220 40% 50%;
-  --sidebar: 30 3% 96%;
-  --sidebar-foreground: 20 14% 4%;
-  --sidebar-primary: 24 10% 10%;
-  --sidebar-primary-foreground: 60 9% 98%;
-  --sidebar-accent: 30 6% 94%;
-  --sidebar-accent-foreground: 20 14% 10%;
-  --sidebar-border: 24 6% 90%;
-  --sidebar-ring: 25 5% 45%;
+  --accent-blue: 216 93% 35%;
+  --sidebar: 210 17% 96%;
+  --sidebar-foreground: 210 8% 16%;
+  --sidebar-primary: 216 93% 35%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 220 13% 93%;
+  --sidebar-accent-foreground: 210 8% 16%;
+  --sidebar-border: 214 10% 76%;
+  --sidebar-ring: 214 81% 43%;
 }
 
 .dark {
-  /* Dark theme — lamp light (warm darks, not pure black) */
-  --background: 20 14% 4%;
-  --foreground: 40 10% 90%;
-  --card: 20 12% 8%;
-  --card-foreground: 40 10% 90%;
-  --popover: 20 12% 8%;
-  --popover-foreground: 40 10% 90%;
-  --primary: 40 10% 90%;
-  --primary-foreground: 20 14% 4%;
-  --secondary: 20 10% 10%;
-  --secondary-foreground: 40 10% 90%;
-  --muted: 20 10% 10%;
-  --muted-foreground: 24 5% 55%;
-  --accent: 20 10% 12%;
-  --accent-foreground: 40 10% 90%;
-  --destructive: 0 62.8% 30.6%;
-  --border: 20 6% 16%;
-  --input: 20 6% 16%;
-  --ring: 24 5% 55%;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --accent-blue: 220 35% 55%;
-  --sidebar: 20 14% 3%;
-  --sidebar-foreground: 40 10% 90%;
-  --sidebar-primary: 40 10% 90%;
-  --sidebar-primary-foreground: 20 14% 4%;
-  --sidebar-accent: 20 10% 12%;
-  --sidebar-accent-foreground: 40 10% 90%;
-  --sidebar-border: 20 6% 16%;
-  --sidebar-ring: 24 5% 55%;
+  --background: 220 17% 12%;
+  --foreground: 220 18% 91%;
+  --card: 220 16% 14%;
+  --card-foreground: 220 18% 91%;
+  --popover: 220 16% 14%;
+  --popover-foreground: 220 18% 91%;
+  --primary: 220 18% 91%;
+  --primary-foreground: 220 17% 12%;
+  --secondary: 220 14% 18%;
+  --secondary-foreground: 220 18% 91%;
+  --muted: 220 14% 18%;
+  --muted-foreground: 220 10% 68%;
+  --accent: 220 14% 18%;
+  --accent-foreground: 220 18% 91%;
+  --destructive: 0 70% 55%;
+  --border: 220 10% 32%;
+  --input: 220 10% 28%;
+  --ring: 214 81% 58%;
+  --accent-blue: 214 88% 70%;
+  --sidebar: 220 16% 14%;
+  --sidebar-foreground: 220 18% 91%;
+  --sidebar-primary: 214 88% 70%;
+  --sidebar-primary-foreground: 220 17% 12%;
+  --sidebar-accent: 220 14% 18%;
+  --sidebar-accent-foreground: 220 18% 91%;
+  --sidebar-border: 220 10% 28%;
+  --sidebar-ring: 214 81% 58%;
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+
+  html {
+    background: hsl(var(--background));
+  }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-source-sans-3), "Segoe UI", sans-serif;
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  a {
+    color: hsl(var(--accent-blue));
+  }
+
+  ::selection {
+    background: hsl(var(--accent-blue) / 0.18);
   }
 }
 
 @layer components {
-  /* Surfaces */
-  .surface        { @apply bg-card text-card-foreground border border-border rounded-xl shadow-sm; }
-  .panel          { @apply bg-background text-foreground border border-border rounded-2xl shadow-lg; }
-  .muted-block    { @apply bg-muted text-muted-foreground rounded-md; }
-  .separator      { @apply h-px w-full bg-border; }
+  .surface {
+    @apply bg-card text-card-foreground border border-border shadow-sm;
+  }
 
-  /* Layout helpers */
-  .stack-2        { @apply flex flex-col gap-2; }
-  .stack-3        { @apply flex flex-col gap-3; }
-  .stack-4        { @apply flex flex-col gap-4; }
+  .panel {
+    @apply bg-background text-foreground border border-border shadow-sm;
+  }
 
-  /* Inline chips/badges (variants via data-role) */
-  .chip           { @apply text-xs px-2 py-1 rounded-full ring-1 ring-inset; }
-  .chip[data-role="operator"] { @apply bg-muted text-muted-foreground ring-border; }
-  .chip[data-role="analyst"]  { @apply bg-muted text-muted-foreground ring-border; }
-  .chip[data-role="exec"]     { @apply bg-zinc-800 text-zinc-300 ring-zinc-700; }
+  .muted-block {
+    @apply bg-muted text-muted-foreground;
+  }
 
-  /* Minimal prose styling - tighter, more technical */
+  .separator {
+    @apply h-px w-full bg-border;
+  }
+
+  .stack-2 {
+    @apply flex flex-col gap-2;
+  }
+
+  .stack-3 {
+    @apply flex flex-col gap-3;
+  }
+
+  .stack-4 {
+    @apply flex flex-col gap-4;
+  }
+
+  .chip {
+    @apply text-xs px-2 py-0.5 ring-1 ring-inset;
+  }
+
+  .chip[data-role="operator"] {
+    @apply bg-muted text-muted-foreground ring-border;
+  }
+
+  .chip[data-role="analyst"] {
+    @apply bg-muted text-muted-foreground ring-border;
+  }
+
+  .chip[data-role="exec"] {
+    @apply bg-zinc-800 text-zinc-300 ring-zinc-700;
+  }
+
+  .wiki-paper {
+    @apply bg-card text-card-foreground border border-border shadow-[0_1px_2px_rgba(0,0,0,0.04)];
+  }
+
+  .wiki-box {
+    @apply border border-border bg-background;
+  }
+
+  .wiki-heading {
+    font-family: var(--font-source-serif-4), Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  .wiki-section-label {
+    @apply text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground;
+  }
+
   .prose {
     @apply text-[15px] leading-relaxed;
   }
+
   .prose p {
     @apply my-3;
   }
-  .prose h1, .prose h2, .prose h3, .prose h4 {
-    @apply font-medium tracking-tight mt-6 mb-3;
+
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4 {
+    font-family: var(--font-source-serif-4), Georgia, serif;
+    font-weight: 400;
   }
-  .prose h1 { @apply text-xl; }
-  .prose h2 { @apply text-lg; }
-  .prose h3 { @apply text-base; }
-  .prose h4 { @apply text-sm; }
+
   .prose ul {
     @apply my-3 space-y-1 list-disc pl-5;
   }
+
   .prose ol {
     @apply my-3 space-y-1 list-decimal pl-5;
   }
-  .prose li {
-    @apply my-0.5;
-  }
+
   .prose code {
-    @apply text-xs bg-muted px-1.5 py-0.5 rounded font-mono;
+    @apply text-xs bg-muted px-1.5 py-0.5 font-mono;
   }
+
   .ProseMirror pre {
-    @apply text-xs leading-relaxed my-3 bg-muted border border-border rounded-lg;
+    @apply text-xs leading-relaxed my-3 bg-muted border border-border p-3;
   }
+
   .ProseMirror pre code {
     @apply bg-transparent p-0;
   }
+
   .prose strong {
     @apply font-semibold text-foreground;
   }
+
   .prose a {
-    @apply text-foreground underline underline-offset-2 decoration-foreground/30 hover:decoration-foreground transition-colors;
+    color: hsl(var(--accent-blue));
   }
 }
 
 @layer utilities {
-  .rounded-app { border-radius: var(--radius); }
-  .rounded-app-md { border-radius: var(--radius-md); }
-  .rounded-app-sm { border-radius: var(--radius-sm); }
+  .rounded-app {
+    border-radius: var(--radius);
+  }
+
+  .rounded-app-md {
+    border-radius: var(--radius-md);
+  }
+
+  .rounded-app-sm {
+    border-radius: var(--radius-sm);
+  }
 }
 
-/* Smooth panel collapse/expand — disabled while user is dragging the separator */
 .panel-transition:not(:has([data-resize-handle-active])) [data-panel] {
   transition: flex-grow 150ms ease-out;
 }
 
-/* Tab content transition */
 @keyframes tab-in {
   from {
     opacity: 0;
     transform: translateY(4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -225,7 +284,6 @@
   animation: tab-in 200ms ease-out both;
 }
 
-/* Ensure overlays, sheets, popovers mirror the radius */
 [data-slot="popover-content"],
 [data-slot="sheet-content"],
 [data-slot="dialog-content"],
@@ -236,144 +294,23 @@
   border-radius: var(--radius);
 }
 
-/* Hide scrollbars but keep scroll functionality */
 .no-scrollbar {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
-}
-.no-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* Tiptap editor */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
-  color: hsl(var(--muted-foreground) / 0.4);
+  color: hsl(var(--muted-foreground) / 0.45);
   pointer-events: none;
   height: 0;
 }
 
-/* Tiptap line spacing */
 .ProseMirror {
   line-height: 1.7;
-}
-.ProseMirror p {
-  margin-top: 0.6em;
-  margin-bottom: 0.6em;
-}
-.ProseMirror ul,
-.ProseMirror ol {
-  margin-top: 0.5em;
-  margin-bottom: 0.5em;
-}
-.ProseMirror li {
-  margin-top: 0.2em;
-  margin-bottom: 0.2em;
-}
-.ProseMirror li p {
-  margin-top: 0.25em;
-  margin-bottom: 0.25em;
-}
-
-/* Tiptap tables (scoped to ProseMirror so they don't affect other tables) */
-.ProseMirror table {
-  @apply w-full border-collapse my-3;
-}
-.ProseMirror th {
-  @apply bg-muted text-left text-sm font-medium px-2.5 py-1 border border-border;
-}
-.ProseMirror td {
-  @apply text-sm px-2.5 py-1 border border-border;
-}
-.ProseMirror .tableWrapper {
-  overflow-x: auto;
-  margin: 0.75rem 0;
-}
-.ProseMirror table .selectedCell::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: hsl(var(--primary) / 0.08);
-  pointer-events: none;
-  z-index: 1;
-}
-.ProseMirror td,
-.ProseMirror th {
-  position: relative;
-}
-
-/* Tiptap images */
-.ProseMirror img {
-  max-width: 100%;
-  height: auto;
-  border-radius: var(--radius-md);
-  margin: 0.75rem 0;
-}
-.ProseMirror img.ProseMirror-selectednode {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 2px;
-}
-
-/* Wiki markdown content — polished documentation typography */
-.wiki-content {
-  @apply text-[15px] leading-[1.8];
-}
-.wiki-content h1 { @apply text-2xl font-bold tracking-tight mt-10 mb-4 first:mt-0 scroll-mt-20; }
-.wiki-content h2 { @apply text-xl font-semibold tracking-tight mt-10 mb-4 pt-4 border-t border-border/50 first:border-0 first:pt-0 scroll-mt-20; }
-.wiki-content h3 { @apply text-lg font-medium tracking-tight mt-8 mb-3 scroll-mt-20; }
-.wiki-content h4 { @apply text-base font-medium mt-6 mb-2 scroll-mt-20; }
-.wiki-content p { @apply my-4 leading-[1.8] text-foreground/90; }
-.wiki-content ul { @apply my-4 space-y-1.5 list-disc pl-5; }
-.wiki-content ol { @apply my-4 space-y-1.5 list-decimal pl-5; }
-.wiki-content li { @apply my-1 leading-[1.8]; }
-.wiki-content hr { @apply my-8 border-border/60; }
-.wiki-content img { @apply max-w-full h-auto rounded-lg my-5 border border-border/30; }
-.wiki-content blockquote {
-  @apply border-l-[3px] border-accent-blue/40 pl-4 my-6 py-1 rounded-r-md;
-  background: hsl(var(--accent-blue) / 0.03);
-  color: hsl(var(--muted-foreground));
-}
-.wiki-content blockquote p {
-  @apply my-2;
-}
-.wiki-content strong { @apply font-semibold text-foreground; }
-.wiki-content a { @apply text-accent-blue underline underline-offset-2 decoration-accent-blue/30 hover:decoration-accent-blue transition-colors; }
-
-/* Wiki tables */
-.wiki-content table { @apply w-full border-collapse text-sm; }
-.wiki-content thead { @apply bg-muted/50; }
-.wiki-content th { @apply text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground px-3 py-2 border-b border-border; }
-.wiki-content td { @apply text-sm px-3 py-2 border-b border-border/50; }
-.wiki-content tr:last-child td { @apply border-b-0; }
-
-/* Wiki footnotes section */
-.wiki-content .footnotes { @apply mt-12 pt-6 border-t border-border; }
-.wiki-content .footnotes ol { @apply space-y-2; }
-.wiki-content .footnotes li { @apply text-sm text-muted-foreground; }
-
-/* Wiki Mermaid diagrams */
-.wiki-content .mermaid-diagram {
-  @apply my-6 overflow-x-auto rounded-xl border border-border/70 bg-card/80 p-4 shadow-sm;
-}
-.wiki-content .mermaid-diagram svg {
-  @apply mx-auto h-auto max-w-full;
-}
-.wiki-content .mermaid-diagram-error {
-  @apply border-destructive/30 bg-destructive/5;
-}
-
-/* Blockquote styles (legacy) */
-.markdown-blockquote {
-  border-left: 3px solid hsl(var(--accent-blue) / 0.4) !important;
-  padding-left: 16px !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  margin-top: 24px !important;
-  margin-bottom: 24px !important;
-  color: hsl(var(--muted-foreground)) !important;
-  background: hsl(var(--accent-blue) / 0.03) !important;
-  border-radius: 0 6px 6px 0 !important;
-  padding-top: 4px !important;
-  padding-bottom: 4px !important;
 }

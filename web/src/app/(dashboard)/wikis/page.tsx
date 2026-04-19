@@ -51,8 +51,8 @@ export default function WikisPage() {
       const displayName = email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1)
       const kb = await createKB(`${displayName} Wiki`)
       router.push(`/wikis/${kb.slug}`)
-    } catch (err) {
-      console.error('Failed to create wiki:', err)
+    } catch (error) {
+      console.error('Failed to create wiki:', error)
     } finally {
       setCreating(false)
     }
@@ -66,8 +66,8 @@ export default function WikisPage() {
       setDialogOpen(false)
       setName('')
       router.push(`/wikis/${kb.slug}`)
-    } catch (err) {
-      console.error('Failed to create wiki:', err)
+    } catch (error) {
+      console.error('Failed to create wiki:', error)
     } finally {
       setCreating(false)
     }
@@ -75,32 +75,32 @@ export default function WikisPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex h-full items-center justify-center bg-muted/55">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex h-full flex-col bg-muted/55">
       <PageHeader onNew={() => setDialogOpen(true)} />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-8 py-6">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
           {knowledgeBases.length === 0 ? (
-            <div className="min-h-[60vh] flex flex-col items-center justify-center text-center">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-foreground mb-6">
-                <BookOpen size={24} className="text-background" />
+            <div className="wiki-paper flex min-h-[60vh] flex-col items-center justify-center px-8 text-center">
+              <div className="mb-6 inline-flex h-14 w-14 items-center justify-center border border-border bg-card">
+                <BookOpen size={24} className="text-foreground" />
               </div>
-              <h1 className="text-3xl font-bold tracking-tight">Create your first wiki</h1>
-              <p className="mt-3 text-base text-muted-foreground max-w-md">
+              <h1 className="wiki-heading text-4xl">Create your first wiki</h1>
+              <p className="mt-3 max-w-md text-base text-muted-foreground">
                 Add a wiki, upload sources, and use the local MCP endpoint without any login flow.
               </p>
               <button
                 onClick={handleQuickCreate}
                 disabled={creating}
                 data-testid="quick-create-wiki"
-                className="mt-8 inline-flex items-center justify-center gap-2.5 rounded-full bg-foreground text-background px-8 py-3 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+                className="mt-8 inline-flex items-center justify-center gap-2.5 border border-border bg-card px-8 py-3 text-sm font-medium hover:bg-muted transition-colors cursor-pointer disabled:opacity-50"
               >
                 {creating ? (
                   <>
@@ -116,7 +116,7 @@ export default function WikisPage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {knowledgeBases.map((kb) => {
                 const stats: string[] = []
                 if (kb.source_count > 0) stats.push(`${kb.source_count} source${kb.source_count !== 1 ? 's' : ''}`)
@@ -126,26 +126,26 @@ export default function WikisPage() {
                   <button
                     key={kb.id}
                     onClick={() => router.push(`/wikis/${kb.slug}`)}
-                    className="flex flex-col items-start gap-3 p-5 rounded-xl border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer text-left group overflow-hidden"
+                    className="group flex cursor-pointer flex-col items-start gap-3 overflow-hidden border border-border bg-card p-5 text-left transition-colors hover:bg-muted/45"
                   >
-                    <div className="flex items-center gap-3 min-w-0 w-full">
-                      <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-muted group-hover:bg-accent transition-colors flex-shrink-0">
+                    <div className="flex w-full min-w-0 items-center gap-3">
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-border bg-background transition-colors group-hover:bg-muted">
                         <BookOpen size={16} className="text-muted-foreground group-hover:text-foreground transition-colors" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h2 className="text-sm font-medium text-foreground truncate">{kb.name}</h2>
+                        <h2 className="wiki-heading truncate text-[1.35rem] leading-none text-foreground">{kb.name}</h2>
                         {kb.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{kb.description}</p>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">{kb.description}</p>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground/50 w-full">
+                    <div className="flex w-full items-center gap-2 border-t border-border pt-3 text-[11px] text-muted-foreground">
                       {stats.length > 0 ? (
                         <span>{stats.join(' · ')}</span>
                       ) : (
-                        <span className="text-muted-foreground/30">No sources yet</span>
+                        <span>No sources yet</span>
                       )}
-                      <span className="ml-auto text-muted-foreground/30 shrink-0">
+                      <span className="ml-auto shrink-0 text-muted-foreground">
                         {relativeTime(kb.updated_at)}
                       </span>
                     </div>
@@ -155,7 +155,7 @@ export default function WikisPage() {
 
               <button
                 onClick={() => setDialogOpen(true)}
-                className="flex flex-col items-center justify-center gap-2 p-5 rounded-xl border border-dashed border-border hover:border-primary/50 hover:bg-accent/30 transition-colors cursor-pointer min-h-[112px]"
+                className="flex min-h-[112px] cursor-pointer flex-col items-center justify-center gap-2 border border-dashed border-border bg-background p-5 transition-colors hover:bg-muted/35"
               >
                 <Plus size={16} className="text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">New Wiki</span>
@@ -179,14 +179,14 @@ export default function WikisPage() {
 
 function PageHeader({ onNew }: { onNew?: () => void }) {
   return (
-    <div className="shrink-0 flex items-center justify-between px-6 h-12 border-b border-border">
-      <span className="text-sm font-medium text-foreground tracking-tight">LLM Wiki</span>
+    <div className="shrink-0 flex h-12 items-center justify-between border-b border-border bg-background px-6">
+      <span className="wiki-heading text-xl text-foreground">LLM Wiki</span>
       <div className="flex items-center gap-1">
         {onNew && (
           <button
             onClick={onNew}
             data-testid="open-create-wiki-dialog"
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
           >
             <Plus className="size-3" />
             New
@@ -214,12 +214,12 @@ function HeaderUserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="h-6 w-6 bg-muted border border-border rounded-full flex items-center justify-center cursor-pointer hover:bg-accent transition-colors">
+        <button className="flex h-6 w-6 items-center justify-center border border-border bg-card cursor-pointer hover:bg-muted transition-colors">
           <span className="text-[9px] font-medium text-muted-foreground">{initials}</span>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
-        <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">
+      <DropdownMenuContent align="end" className="w-44 border-border">
+        <div className="truncate px-2 py-1.5 text-xs text-muted-foreground">
           {user.email}
         </div>
         <DropdownMenuSeparator />
@@ -260,9 +260,9 @@ function CreateWikiDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="border-border">
         <DialogHeader>
-          <DialogTitle>Create Wiki</DialogTitle>
+          <DialogTitle className="wiki-heading text-xl">Create Wiki</DialogTitle>
         </DialogHeader>
         <input
           value={name}
@@ -270,7 +270,7 @@ function CreateWikiDialog({
           onKeyDown={(e) => e.key === 'Enter' && onCreate()}
           placeholder="Wiki name"
           data-testid="create-wiki-name-input"
-          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+          className="w-full border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
           autoFocus
         />
         <DialogFooter>
@@ -278,7 +278,7 @@ function CreateWikiDialog({
             onClick={onCreate}
             disabled={creating || !name.trim()}
             data-testid="submit-create-wiki"
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer"
+            className="border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 cursor-pointer"
           >
             {creating ? 'Creating...' : 'Create'}
           </button>

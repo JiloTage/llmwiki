@@ -517,15 +517,15 @@ export function KBDetail({ kbId, kbName }: Props) {
 
   return (
     <div
-      className="flex flex-col h-full relative"
+      className="relative flex h-full flex-col bg-muted/55"
       onDragEnter={handleFileDragEnter}
       onDragLeave={handleFileDragLeave}
       onDragOver={handleFileDragOver}
       onDrop={handleFileDrop}
     >
       {fileDragOver && (
-        <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center pointer-events-none">
-          <div className="flex flex-col items-center gap-3 border-2 border-dashed border-primary rounded-xl px-12 py-10">
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm pointer-events-none">
+          <div className="flex flex-col items-center gap-3 border-2 border-dashed border-accent-blue bg-card px-12 py-10">
             <UploadIcon className="size-8 text-primary" />
             <p className="text-sm font-medium text-primary">Drop markdown or text files to upload</p>
             <p className="text-xs text-muted-foreground">Supported: .md, .txt</p>
@@ -533,8 +533,8 @@ export function KBDetail({ kbId, kbName }: Props) {
         </div>
       )}
 
-      <div className="flex-1 overflow-hidden flex">
-        <div className="w-56 shrink-0">
+      <div className="flex flex-1 overflow-hidden">
+        <div className="w-[18rem] shrink-0">
           <KBSidenav
             kbName={kbName}
             wikiTree={wikiTree}
@@ -558,7 +558,7 @@ export function KBDetail({ kbId, kbName }: Props) {
           />
         </div>
 
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1 border-l border-border/80 bg-background">
           {showMainLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -577,37 +577,40 @@ export function KBDetail({ kbId, kbName }: Props) {
             <WikiContent
               content={pageContent}
               title={pageTitle}
+              path={wikiActivePath}
+              kbName={kbName}
               onNavigate={handleWikiNavigate}
               onSourceClick={handleCitationSourceClick}
               documents={documents}
             />
           ) : (
-            <div data-testid="empty-wiki-state" className="flex flex-col items-center justify-center h-full gap-4 px-6">
+            <div data-testid="empty-wiki-state" className="flex h-full flex-col items-center justify-center gap-4 px-6">
               <BookOpen className="size-10 text-muted-foreground/20" />
-              <div className="text-center max-w-sm">
-                <h3 className="text-base font-medium mb-1.5">No wiki pages yet</h3>
+              <div className="max-w-sm border border-border bg-card px-8 py-8 text-center">
+                <p className="wiki-section-label mb-3">Empty encyclopedia</p>
+                <h3 className="wiki-heading text-[1.8rem] leading-none mb-3">No wiki pages yet</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Upload source notes and start drafting markdown pages under <code>/wiki/</code>.
                 </p>
-              </div>
-              <div className="flex items-center gap-3 mt-2">
-                <button
-                  onClick={handleUploadClick}
-                  data-testid="empty-wiki-upload"
-                  className="inline-flex items-center gap-2 rounded-full bg-foreground text-background px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
-                >
-                  <UploadIcon className="size-3.5 opacity-60" />
-                  Upload Sources
-                </button>
-                <a
-                  href="https://claude.ai"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2 text-sm font-medium hover:bg-accent transition-colors"
-                >
-                  Open Claude
-                  <ArrowUpRight className="size-3.5 opacity-60" />
-                </a>
+                <div className="mt-6 flex items-center justify-center gap-3">
+                  <button
+                    onClick={handleUploadClick}
+                    data-testid="empty-wiki-upload"
+                    className="inline-flex items-center gap-2 border border-border bg-card px-5 py-2 text-sm font-medium hover:bg-muted transition-colors cursor-pointer"
+                  >
+                    <UploadIcon className="size-3.5 opacity-60" />
+                    Upload Sources
+                  </button>
+                  <a
+                    href="https://claude.ai"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 border border-border bg-background px-5 py-2 text-sm font-medium hover:bg-muted transition-colors"
+                  >
+                    Open Claude
+                    <ArrowUpRight className="size-3.5 opacity-60" />
+                  </a>
+                </div>
               </div>
             </div>
           )}

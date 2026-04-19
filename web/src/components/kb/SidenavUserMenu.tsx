@@ -33,15 +33,15 @@ export function SidenavUserMenu() {
           type="button"
           aria-label="Open user menu"
           data-testid="sidenav-user-menu-trigger"
-          className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors cursor-pointer"
+          className="flex w-full items-center gap-2 border border-border bg-card px-2.5 py-2 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground cursor-pointer"
         >
-          <div className="h-5 w-5 bg-muted border border-border rounded flex items-center justify-center shrink-0">
+          <div className="flex h-5 w-5 shrink-0 items-center justify-center border border-border bg-background">
             <span className="text-[8px] font-medium">{initials}</span>
           </div>
           <span className="truncate">{user.email}</span>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" side="top" className="w-48">
+      <DropdownMenuContent align="start" side="top" className="w-48 border-border">
         <DropdownMenuItem onClick={() => router.push('/settings')} data-testid="open-settings">
           <Settings className="mr-2 h-4 w-4" />
           Settings

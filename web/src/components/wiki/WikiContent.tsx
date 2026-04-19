@@ -92,11 +92,12 @@ function TableOfContents({ items }: { items: TocItem[] }) {
   if (items.length === 0) return null
 
   return (
-    <nav className="space-y-0.5">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50 mb-2 px-1">
-        On this page
+    <nav className="border border-border bg-background p-3">
+      <p className="wiki-heading border-b border-border pb-1 text-base text-foreground">
+        Contents
       </p>
-      {items.map((item) => (
+      <div className="mt-2 space-y-0.5">
+        {items.map((item) => (
         <a
           key={item.id}
           href={`#${item.id}`}
@@ -109,16 +110,17 @@ function TableOfContents({ items }: { items: TocItem[] }) {
             }
           }}
           className={cn(
-            'block text-xs leading-snug py-1 px-1 rounded transition-colors',
-            item.level === 3 && 'pl-4',
+            'block py-1 text-xs leading-snug transition-colors',
+            item.level === 3 && 'pl-4 text-[11px]',
             activeId === item.id
-              ? 'text-foreground font-medium'
-              : 'text-muted-foreground/60 hover:text-muted-foreground',
+              ? 'font-semibold text-foreground'
+              : 'text-accent-blue hover:underline',
           )}
         >
           {item.text}
         </a>
-      ))}
+        ))}
+      </div>
     </nav>
   )
 }
@@ -185,22 +187,22 @@ function CitationBadge({
             e.preventDefault()
             onSourceClick(filename)
           }}
-          className="inline-flex items-center gap-0.5 px-1.5 py-0 text-[10px] font-medium bg-accent-blue/10 text-accent-blue rounded-full border border-accent-blue/20 hover:bg-accent-blue/20 transition-colors leading-tight cursor-pointer"
+          className="inline-flex items-center text-[11px] text-accent-blue hover:underline cursor-pointer align-super"
         >
-          {num}
+          [{num}]
         </button>
       </PopoverTrigger>
       <PopoverContent
         side="top"
         align="center"
         sideOffset={6}
-        className="w-64 p-0 overflow-hidden"
+        className="w-64 overflow-hidden border-border p-0"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
         <div
           role="button"
-          className="flex items-start gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-accent/50 transition-colors"
+          className="flex items-start gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-muted/55 transition-colors"
           onClick={() => {
             setIsOpen(false)
             onSourceClick(filename)
@@ -293,7 +295,7 @@ function WikiImage({
       <img
         src={dataUri}
         alt={alt || ''}
-        className="max-w-full h-auto my-5 mx-auto block"
+        className="my-5 block h-auto max-w-full border border-border bg-background p-2"
       />
     )
   }
@@ -305,7 +307,7 @@ function WikiImage({
       <img
         src={imageUrl}
         alt={alt || ''}
-        className="max-w-full h-auto rounded-lg my-5 border border-border/30"
+        className="my-5 h-auto max-w-full border border-border bg-background p-2"
       />
     )
   }
@@ -313,8 +315,8 @@ function WikiImage({
   // Still loading — use span to avoid div-inside-p hydration error
   if (loading) {
     return (
-      <span className="block my-5 flex justify-center">
-        <span className="block w-48 h-32 rounded-lg bg-muted/60 animate-pulse" />
+      <span className="my-5 flex justify-center">
+        <span className="block h-32 w-48 animate-pulse border border-border bg-muted/60" />
       </span>
     )
   }
@@ -325,7 +327,7 @@ function WikiImage({
     <img
       src={src}
       alt={alt || ''}
-      className="max-w-full h-auto rounded-lg my-5 border border-border/30"
+      className="my-5 h-auto max-w-full border border-border bg-background p-2"
     />
   )
 }
@@ -441,12 +443,19 @@ function extractMermaidChart(children: React.ReactNode): string | null {
 interface WikiContentProps {
   content: string
   title: string
+  path?: string | null
+  kbName?: string
   onNavigate: (path: string) => void
   onSourceClick?: (filename: string) => void
   documents?: DocumentListItem[]
 }
 
-export function WikiContent({ content, title, onNavigate, onSourceClick, documents }: WikiContentProps) {
+function formatWikiPath(path?: string | null) {
+  if (!path) return null
+  return `/wiki/${path.replace(/\\/g, '/').replace(/^\/+/, '')}`
+}
+
+export function WikiContent({ content, title, path, kbName, onNavigate, onSourceClick, documents }: WikiContentProps) {
   const processedContent = React.useMemo(() => stripLeadingH1(content, title), [content, title])
   const tocItems = React.useMemo(() => extractTocFromMarkdown(processedContent), [processedContent])
   const footnoteSources = React.useMemo(() => parseFootnoteSources(processedContent), [processedContent])
@@ -457,7 +466,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
         const text = childrenToText(children)
         const id = slugify(text)
         return (
-          <h1 id={id} className="text-2xl font-bold tracking-tight mt-8 mb-3 first:mt-0 scroll-mt-20">
+          <h1 id={id} className="wiki-heading mt-8 mb-3 scroll-mt-20 text-[1.7rem] leading-tight first:mt-0">
             {children}
           </h1>
         )
@@ -466,7 +475,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
         const text = childrenToText(children)
         const id = slugify(text)
         return (
-          <h2 id={id} className="text-xl font-semibold tracking-tight mt-6 mb-2 pt-2 border-t border-border/50 first:border-0 first:pt-0 scroll-mt-20">
+          <h2 id={id} className="wiki-heading mt-8 mb-2 border-b border-border pb-1 scroll-mt-20 text-[1.45rem]">
             {children}
           </h2>
         )
@@ -475,7 +484,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
         const text = childrenToText(children)
         const id = slugify(text)
         return (
-          <h3 id={id} className="text-lg font-medium tracking-tight mt-6 mb-1.5 scroll-mt-20">
+          <h3 id={id} className="wiki-heading mt-6 mb-1.5 scroll-mt-20 text-[1.15rem]">
             {children}
           </h3>
         )
@@ -484,13 +493,13 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
         const text = childrenToText(children)
         const id = slugify(text)
         return (
-          <h4 id={id} className="text-base font-medium mt-5 mb-1 scroll-mt-20">
+          <h4 id={id} className="mt-5 mb-1 scroll-mt-20 text-base font-semibold">
             {children}
           </h4>
         )
       },
       p({ children }) {
-        return <p className="my-2 leading-[1.65] text-foreground/90">{children}</p>
+        return <p className="my-2 text-[0.95rem] leading-[1.72] text-foreground">{children}</p>
       },
       pre({ children, ...props }) {
         const mermaidChart = extractMermaidChart(children)
@@ -500,7 +509,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
 
         return (
           <pre
-            className="text-[13px] leading-relaxed my-3 bg-muted/60 border border-border rounded-lg p-4 overflow-x-auto"
+            className="my-4 overflow-x-auto border border-border bg-muted/55 p-4 text-[13px] leading-relaxed"
             {...props}
           >
             {children}
@@ -518,7 +527,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
         }
         return (
           <code
-            className="text-[13px] bg-muted/70 px-1.5 py-0.5 rounded font-mono text-foreground/80"
+            className="bg-muted/80 px-1.5 py-0.5 font-mono text-[13px] text-foreground/80"
             {...props}
           >
             {children}
@@ -538,7 +547,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
           return (
             <a
               href={href}
-              className="text-muted-foreground/50 hover:text-muted-foreground no-underline ml-1"
+              className="ml-1 text-muted-foreground/60 no-underline hover:text-muted-foreground"
             >
               {children}
             </a>
@@ -555,7 +564,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
           return (
             <button
               onClick={() => onNavigate(href)}
-              className="text-accent-blue underline underline-offset-2 decoration-accent-blue/30 hover:decoration-accent-blue transition-colors cursor-pointer font-medium"
+              className="cursor-pointer text-accent-blue hover:underline"
             >
               {children}
             </button>
@@ -573,7 +582,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
                 const el = document.getElementById(id)
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
               }}
-              className="text-accent-blue underline underline-offset-2 decoration-accent-blue/30 hover:decoration-accent-blue transition-colors"
+              className="text-accent-blue hover:underline"
             >
               {children}
             </a>
@@ -585,7 +594,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
             href={href ?? undefined}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-accent-blue underline underline-offset-2 decoration-accent-blue/30 hover:decoration-accent-blue transition-colors"
+            className="text-accent-blue hover:underline"
           >
             {children}
           </a>
@@ -618,7 +627,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
       },
       table({ children, ...props }) {
         return (
-          <div className="overflow-x-auto my-6 rounded-lg border border-border">
+          <div className="my-6 overflow-x-auto border border-border bg-background">
             <table className="w-full border-collapse text-sm" {...props}>
               {children}
             </table>
@@ -627,7 +636,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
       },
       thead({ children, ...props }) {
         return (
-          <thead className="bg-muted/50" {...props}>
+          <thead className="bg-muted" {...props}>
             {children}
           </thead>
         )
@@ -635,7 +644,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
       th({ children, ...props }) {
         return (
           <th
-            className="text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground px-3 py-2 border-b border-border"
+            className="border-b border-border px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
             {...props}
           >
             {children}
@@ -644,7 +653,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
       },
       td({ children, ...props }) {
         return (
-          <td className="text-sm px-3 py-2 border-b border-border/50" {...props}>
+          <td className="border-b border-border/60 px-3 py-2 text-sm" {...props}>
             {children}
           </td>
         )
@@ -652,7 +661,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
       blockquote({ children, ...props }) {
         return (
           <blockquote
-            className="border-l-[3px] border-accent-blue/40 pl-4 my-3 py-1 text-muted-foreground bg-accent-blue/[0.03] rounded-r-md"
+            className="my-4 border-l-2 border-border bg-muted/35 px-4 py-2 text-muted-foreground"
             {...props}
           >
             {children}
@@ -661,14 +670,14 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
       },
       ul({ children, ...props }) {
         return (
-          <ul className="my-2.5 space-y-0.5 list-disc pl-5 marker:text-muted-foreground/40" {...props}>
+          <ul className="my-2.5 list-disc space-y-0.5 pl-5 marker:text-muted-foreground/60" {...props}>
             {children}
           </ul>
         )
       },
       ol({ children, ...props }) {
         return (
-          <ol className="my-2.5 space-y-0.5 list-decimal pl-5 marker:text-muted-foreground/40" {...props}>
+          <ol className="my-2.5 list-decimal space-y-0.5 pl-5 marker:text-muted-foreground/60" {...props}>
             {children}
           </ol>
         )
@@ -681,11 +690,11 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
           return (
             <li
               id={id}
-              className="my-2 text-sm pl-1 scroll-mt-20"
+              className="my-2 scroll-mt-20 pl-1 text-sm"
             >
               <button
                 onClick={() => onSourceClick?.(text)}
-                className="text-muted-foreground hover:text-foreground hover:underline transition-colors cursor-pointer text-left"
+                className="cursor-pointer text-left text-accent-blue hover:underline"
               >
                 {text}
               </button>
@@ -699,7 +708,7 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
         )
       },
       hr() {
-        return <hr className="my-6 border-border/60" />
+        return <hr className="my-6 border-border" />
       },
       img({ src, alt }) {
         return (
@@ -718,18 +727,18 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
           const entries = Array.from(footnoteSources.entries())
           if (entries.length === 0) return null
           return (
-            <section className="mt-12 pt-6 border-t border-border">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/50 mb-3">
+            <section className="mt-12 border-t border-border pt-6">
+              <p className="wiki-heading mb-3 text-base text-foreground">
                 Sources
               </p>
-              <ol className="list-decimal pl-5 space-y-1.5">
+              <ol className="list-decimal space-y-1.5 pl-5">
                 {entries.map(([num, source]) => {
                   const filename = source.replace(/,\s*p\.?\s*.+$/, '').trim()
                   return (
                     <li key={num} className="text-sm pl-1">
                       <button
                         onClick={() => onSourceClick?.(filename)}
-                        className="text-muted-foreground hover:text-foreground hover:underline transition-colors cursor-pointer text-left"
+                        className="cursor-pointer text-left text-accent-blue hover:underline"
                       >
                         {source}
                       </button>
@@ -747,39 +756,88 @@ export function WikiContent({ content, title, onNavigate, onSourceClick, documen
   )
 
   const hasToc = tocItems.length > 0
+  const formattedPath = formatWikiPath(path)
+  const sourceCount = footnoteSources.size
 
   return (
-    <div className="h-full overflow-y-auto" id="wiki-scroll-container">
+    <div className="h-full overflow-y-auto bg-muted/55" id="wiki-scroll-container">
       <div className={cn(
-        'mx-auto px-6 py-10',
-        hasToc ? 'max-w-5xl' : 'max-w-3xl',
+        'mx-auto px-4 py-6 lg:px-6',
+        hasToc ? 'max-w-[1400px]' : 'max-w-[1100px]',
       )}>
-        <div className={cn(
-          hasToc && 'flex gap-8',
-        )}>
+        <div className={cn(hasToc && 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]')}>
           {/* Main content */}
-          <div className={cn(
-            'min-w-0',
-            hasToc ? 'flex-1 max-w-[720px]' : 'w-full',
-          )}>
-            {title && (
-              <h1 className="text-3xl font-bold tracking-tight mb-2">{title}</h1>
-            )}
-            <div className="wiki-content text-[15px] leading-relaxed">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={components}
-              >
-                {processedContent}
-              </ReactMarkdown>
+          <article className="wiki-paper min-w-0">
+            <div className="border-b border-border bg-muted/35 px-6 py-2 text-xs text-muted-foreground lg:px-8">
+              <span className="text-foreground">LLM Wiki</span>
+              {kbName ? <span>{` / ${kbName}`}</span> : null}
+              {formattedPath ? <span>{` / ${formattedPath}`}</span> : null}
             </div>
-          </div>
+            <header className="px-6 py-5 lg:px-8">
+              <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-1">
+                <div>
+                  <div className="wiki-section-label mb-2">Article</div>
+                  {title && (
+                    <h1 className="wiki-heading text-[2rem] leading-none text-foreground">{title}</h1>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                  {formattedPath ? (
+                    <span className="border border-border bg-background px-2 py-1">{formattedPath}</span>
+                  ) : null}
+                  <span className="border border-border bg-background px-2 py-1">
+                    {tocItems.length} sections
+                  </span>
+                  <span className="border border-border bg-background px-2 py-1">
+                    {sourceCount} sources
+                  </span>
+                </div>
+              </div>
+            </header>
+
+            <div className="px-6 pb-8 lg:px-8 lg:pb-10">
+              {hasToc && (
+                <div className="mb-6 lg:hidden">
+                  <TableOfContents items={tocItems} />
+                </div>
+              )}
+              <div className="wiki-content text-[15px] leading-relaxed">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={components}
+                >
+                  {processedContent}
+                </ReactMarkdown>
+              </div>
+            </div>
+          </article>
 
           {/* Right sidebar — "On this page" ToC */}
           {hasToc && (
-            <aside className="hidden lg:block w-48 shrink-0">
-              <div className="sticky top-10">
+            <aside className="hidden lg:block">
+              <div className="sticky top-6 space-y-4">
                 <TableOfContents items={tocItems} />
+                <div className="border border-border bg-background p-3 text-sm">
+                  <p className="wiki-heading border-b border-border pb-1 text-base text-foreground">
+                    Page Facts
+                  </p>
+                  <dl className="mt-3 space-y-2 text-[13px]">
+                    {formattedPath ? (
+                      <div>
+                        <dt className="font-semibold text-foreground">Path</dt>
+                        <dd className="break-all text-muted-foreground">{formattedPath}</dd>
+                      </div>
+                    ) : null}
+                    <div>
+                      <dt className="font-semibold text-foreground">Sections</dt>
+                      <dd className="text-muted-foreground">{tocItems.length}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold text-foreground">Sources</dt>
+                      <dd className="text-muted-foreground">{sourceCount}</dd>
+                    </div>
+                  </dl>
+                </div>
               </div>
             </aside>
           )}

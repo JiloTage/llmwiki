@@ -4,7 +4,14 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronsUpDown, Plus } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
-import { Command, CommandInput, CommandList, CommandItem, CommandEmpty, CommandSeparator } from '@/components/ui/command'
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandItem,
+  CommandEmpty,
+  CommandSeparator,
+} from '@/components/ui/command'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useKBStore } from '@/stores'
 
@@ -39,17 +46,22 @@ export function WikiSelector({ kbName }: { kbName: string }) {
           <button
             type="button"
             data-testid="wiki-selector-trigger"
-            className="flex items-center gap-1.5 w-full px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent rounded-md transition-colors cursor-pointer"
+            className="w-full border border-border bg-card px-3 py-2 text-left transition-colors hover:bg-muted/55 cursor-pointer"
           >
-            <span className="truncate flex-1 text-left">{kbName}</span>
-            <ChevronsUpDown className="size-3 text-muted-foreground/50 shrink-0" />
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="wiki-heading text-[1.05rem] leading-none text-foreground">LLM Wiki</div>
+                <div className="mt-1 truncate text-xs text-muted-foreground">{kbName}</div>
+              </div>
+              <ChevronsUpDown className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+            </div>
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-52 p-0" align="start">
+        <PopoverContent className="w-64 p-0 border-border" align="start">
           <Command>
-            <CommandInput placeholder="Wiki を検索..." />
+            <CommandInput placeholder="Search wikis..." />
             <CommandList>
-              <CommandEmpty>Wiki が見つかりません。</CommandEmpty>
+              <CommandEmpty>No matching wiki.</CommandEmpty>
               {knowledgeBases.map((kb) => (
                 <CommandItem
                   key={kb.id}
@@ -72,7 +84,7 @@ export function WikiSelector({ kbName }: { kbName: string }) {
                 }}
               >
                 <Plus className="size-3.5 mr-2" />
-                Wiki を作成
+                Create wiki
               </CommandItem>
             </CommandList>
           </Command>
@@ -80,25 +92,25 @@ export function WikiSelector({ kbName }: { kbName: string }) {
       </Popover>
 
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent>
+        <DialogContent className="border-border">
           <DialogHeader>
-            <DialogTitle>Wiki を作成</DialogTitle>
+            <DialogTitle className="wiki-heading text-xl">Create Wiki</DialogTitle>
           </DialogHeader>
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-            placeholder="マイリサーチ"
-            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+            placeholder="Wiki name"
+            className="w-full border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
             autoFocus
           />
           <DialogFooter>
             <button
               onClick={handleCreate}
               disabled={creating || !newName.trim()}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer"
+              className="border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 cursor-pointer"
             >
-              {creating ? '作成中...' : '作成'}
+              {creating ? 'Creating...' : 'Create'}
             </button>
           </DialogFooter>
         </DialogContent>
