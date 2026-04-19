@@ -83,12 +83,12 @@ export function renderWikiPage({
       const mermaidChart = extractMermaidChart(children)
       if (mermaidChart) {
         return (
-          <div
-            className="mermaid-diagram flex min-h-40 items-center justify-center text-sm text-muted-foreground"
-            data-mermaid-chart={mermaidChart}
+          <pre
+            className="my-4 overflow-x-auto border border-border bg-muted/55 p-4 text-[13px] leading-relaxed"
+            {...props}
           >
-            Rendering diagram...
-          </div>
+            <code className="language-mermaid">{mermaidChart}</code>
+          </pre>
         )
       }
 

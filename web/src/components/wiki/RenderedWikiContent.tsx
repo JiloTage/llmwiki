@@ -6,13 +6,6 @@ import { cn } from '@/lib/utils'
 import type { TocItem } from '@/lib/types'
 import { formatWikiPath } from '@/lib/wiki'
 
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-}
-
 function TableOfContents({ items }: { items: TocItem[] }) {
   const [activeId, setActiveId] = React.useState<string | null>(null)
 
@@ -76,70 +69,6 @@ function TableOfContents({ items }: { items: TocItem[] }) {
   )
 }
 
-function useMermaidEnhancement(containerRef: React.RefObject<HTMLDivElement | null>, renderKey: string) {
-  React.useEffect(() => {
-    if (!containerRef.current) return
-
-    let cancelled = false
-
-    const renderMermaid = async () => {
-      const container = containerRef.current
-      if (!container) return
-
-      const nodes = Array.from(container.querySelectorAll<HTMLElement>('[data-mermaid-chart]'))
-      if (nodes.length === 0) return
-
-      const mermaidModule = await import('mermaid')
-      const mermaid = mermaidModule.default
-      const isDark = document.documentElement.classList.contains('dark')
-
-      mermaid.initialize({
-        startOnLoad: false,
-        securityLevel: 'strict',
-        theme: isDark ? 'dark' : 'default',
-        fontFamily: 'var(--font-geist-sans), sans-serif',
-      })
-
-      for (const node of nodes) {
-        if (cancelled) return
-        const chart = node.dataset.mermaidChart?.trim()
-        if (!chart) continue
-
-        try {
-          const renderId = `mermaid-${Math.random().toString(36).slice(2, 10)}`
-          const { svg, bindFunctions } = await mermaid.render(renderId, chart)
-          if (cancelled) return
-          node.innerHTML = svg
-          bindFunctions?.(node)
-        } catch (error) {
-          if (cancelled) return
-          const message = error instanceof Error ? error.message : 'Unknown Mermaid render error'
-          node.innerHTML = `<figure class="mermaid-diagram mermaid-diagram-error"><figcaption class="text-xs font-medium text-destructive mb-3">Mermaid diagram failed to render: ${escapeHtml(message)}</figcaption><pre class="text-[13px] leading-relaxed bg-muted/60 border border-border rounded-lg p-4 overflow-x-auto"><code>${escapeHtml(chart)}</code></pre></figure>`
-        }
-      }
-    }
-
-    void renderMermaid()
-
-    const root = document.documentElement
-    let previousDark = root.classList.contains('dark')
-    const observer = new MutationObserver(() => {
-      const nextDark = root.classList.contains('dark')
-      if (nextDark !== previousDark) {
-        previousDark = nextDark
-        void renderMermaid()
-      }
-    })
-
-    observer.observe(root, { attributes: true, attributeFilter: ['class'] })
-
-    return () => {
-      cancelled = true
-      observer.disconnect()
-    }
-  }, [containerRef, renderKey])
-}
-
 type Props = {
   title: string
   path?: string | null
@@ -163,9 +92,6 @@ export function RenderedWikiContent({
   const containerRef = React.useRef<HTMLDivElement>(null)
   const hasToc = tocItems.length > 0
   const formattedPath = formatWikiPath(path)
-  const renderKey = `${path ?? ''}:${title}:${tocItems.length}:${sourceCount}`
-
-  useMermaidEnhancement(containerRef, renderKey)
 
   React.useEffect(() => {
     const container = containerRef.current
