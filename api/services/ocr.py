@@ -21,7 +21,6 @@ RETRY_BACKOFF = [2, 5, 10]
 
 OFFICE_TYPES = {"pptx", "ppt", "docx", "doc"}
 IMAGE_TYPES = {"png", "jpg", "jpeg", "webp", "gif"}
-OCR_TYPES = {"pdf"} | OFFICE_TYPES | IMAGE_TYPES
 
 
 class OCRService:

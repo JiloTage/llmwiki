@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 from pathlib import Path
 
@@ -52,6 +51,3 @@ class S3Service:
         data = await self.download_bytes(key)
         await asyncio.to_thread(Path(file_path).write_bytes, data)
 
-    async def download_json(self, key: str) -> dict:
-        body = await self.download_bytes(key)
-        return json.loads(body)

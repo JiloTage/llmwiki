@@ -16,7 +16,6 @@ CHUNK_SIZE = 512
 CHUNK_OVERLAP = 128
 MIN_CHUNK_TOKENS = 32
 
-SENTENCE_RE = re.compile(r'(?<=[.!?])\s+')
 HEADER_RE = re.compile(r'^(#{1,6})\s+(.+)$', re.MULTILINE)
 
 

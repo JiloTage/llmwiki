@@ -40,14 +40,6 @@ async def scoped_queryrow(user_id: str, sql: str, *args, claims: dict | None = N
     return rows[0] if rows else None
 
 
-async def scoped_execute(user_id: str, sql: str, *args, claims: dict | None = None) -> str:
-    pool = await get_pool()
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            await _set_rls(conn, user_id, claims)
-            return await conn.execute(sql, *args)
-
-
 async def service_queryrow(sql: str, *args) -> dict | None:
     """Execute a query as service role (bypasses RLS). For writes."""
     pool = await get_pool()
