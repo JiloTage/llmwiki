@@ -9,34 +9,33 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: supavault_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5434:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
+    env:
+      APP_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      LOCAL_ACCESS_TOKEN: local-dev-session
+      NEXT_PUBLIC_LOCAL_ACCESS_TOKEN: local-dev-session
+      NEXT_PUBLIC_LOCAL_USER_ID: 00000000-0000-4000-8000-000000000001
+      NEXT_PUBLIC_LOCAL_USER_EMAIL: local@llmwiki.local
+      NEXT_PUBLIC_MCP_URL: http://127.0.0.1:8080/mcp
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: "3.11"
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
-        run: |
-          pip install -r api/requirements.txt
-          pip install -r tests/requirements.txt
-          pip install cryptography
+        run: npm ci
 
-      - name: Run tests
-        run: pytest -v
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build OpenNext bundle
+        run: npx opennextjs-cloudflare build
