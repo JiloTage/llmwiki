@@ -17,6 +17,22 @@ function getWikiPathStorageKey(kbId: string): string {
   return `llmwiki:active-wiki-path:${kbId}`
 }
 
+function normalizeWikiPath(path: string): string {
+  let normalized = path.trim().replace(/^\/wiki\/?/, '').replace(/^\/+/, '')
+
+  for (let index = 0; index < 2; index += 1) {
+    try {
+      const decoded = decodeURIComponent(normalized)
+      if (decoded === normalized) break
+      normalized = decoded
+    } catch {
+      break
+    }
+  }
+
+  return normalized
+}
+
 function isNoteFile(doc: DocumentListItem): boolean {
   return doc.file_type === 'md' || doc.file_type === 'txt'
 }
@@ -137,7 +153,8 @@ export function KBDetail({ kbId, kbName }: Props) {
   )
   const activeWikiDoc = React.useMemo(() => {
     if (!wikiActivePath) return null
-    return wikiDocs.find((doc) => (doc.path + doc.filename).replace(/^\/wiki\/?/, '') === wikiActivePath) ?? null
+    const normalizedActivePath = normalizeWikiPath(wikiActivePath)
+    return wikiDocs.find((doc) => normalizeWikiPath(doc.path + doc.filename) === normalizedActivePath) ?? null
   }, [wikiActivePath, wikiDocs])
 
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set())
@@ -170,7 +187,7 @@ export function KBDetail({ kbId, kbName }: Props) {
     }
 
     if (pageParam) {
-      setWikiActivePath(pageParam.replace(/^\/wiki\/?/, ''))
+      setWikiActivePath(normalizeWikiPath(pageParam))
       setActiveSourceDocId(null)
       setSelectionHydrated(true)
       return
@@ -243,14 +260,11 @@ export function KBDetail({ kbId, kbName }: Props) {
 
   const handleWikiNavigate = React.useCallback((path: string) => {
     let nextPath = path
-    if (path.startsWith('/wiki/')) {
-      nextPath = path.replace(/^\/wiki\/?/, '')
-    }
     if (path.startsWith('./') && wikiActivePath) {
       const dir = wikiActivePath.includes('/') ? wikiActivePath.slice(0, wikiActivePath.lastIndexOf('/') + 1) : ''
       nextPath = `${dir}${path.slice(2)}`.replace(/\/+/g, '/')
     }
-    handleWikiSelect(nextPath)
+    handleWikiSelect(normalizeWikiPath(nextPath))
   }, [handleWikiSelect, wikiActivePath])
 
   const handleSelect = React.useCallback((docId: string, e: React.MouseEvent) => {

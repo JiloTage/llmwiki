@@ -35,6 +35,22 @@ async function listDocuments(request: APIRequestContext, knowledgeBaseId: string
   return (await response.json()) as Array<{ id: string; filename: string; path: string }>
 }
 
+async function createDocument(
+  request: APIRequestContext,
+  knowledgeBaseId: string,
+  data: { filename: string; path: string; title?: string; content: string },
+) {
+  const response = await request.post(`/api/v1/knowledge-bases/${knowledgeBaseId}/documents/note`, {
+    headers: {
+      ...AUTH_HEADERS,
+      'Content-Type': 'application/json',
+    },
+    data,
+  })
+  expect(response.ok()).toBeTruthy()
+  return response.json()
+}
+
 test.beforeEach(async ({ request, page }) => {
   await resetKnowledgeBases(request)
   await page.goto('/wikis')
@@ -111,4 +127,46 @@ flowchart TD
   await page.reload()
   await expect(page.getByTestId('mermaid-diagram')).toBeVisible()
   await expect(page.locator('[data-testid="mermaid-diagram"] svg')).toBeVisible()
+})
+
+test('follows encoded internal wiki links for pages with Japanese filenames', async ({ page, request }) => {
+  await page.getByTestId('quick-create-wiki').click()
+  await expect(page).toHaveURL(/\/wikis\/local-wiki(?:\?.*)?$/)
+
+  const knowledgeBases = await listKnowledgeBases(request)
+  const knowledgeBase = knowledgeBases.find((kb) => kb.slug === 'local-wiki')
+  expect(knowledgeBase).toBeTruthy()
+
+  const documents = await listDocuments(request, knowledgeBase!.id)
+  const overview = documents.find((doc) => doc.path === '/wiki/' && doc.filename === 'overview.md')
+  expect(overview).toBeTruthy()
+
+  await createDocument(request, knowledgeBase!.id, {
+    filename: 'ページ構成ガイド.md',
+    title: 'ページ構成ガイド',
+    path: '/wiki/concepts/',
+    content: '# ページ構成ガイド\n\n日本語リンク遷移の確認ページです。\n',
+  })
+
+  const encodedFilename = encodeURIComponent('ページ構成ガイド.md')
+  const updateResponse = await request.put(`/api/v1/documents/${overview!.id}/content`, {
+    headers: {
+      ...AUTH_HEADERS,
+      'Content-Type': 'application/json',
+    },
+    data: {
+      content: `# Overview
+
+[ページ構成ガイド](/wiki/concepts/${encodedFilename})
+`,
+    },
+  })
+  expect(updateResponse.ok()).toBeTruthy()
+
+  await page.reload()
+  await page.getByRole('button', { name: 'ページ構成ガイド' }).click()
+
+  await expect(page).toHaveURL(/page=concepts%2F/)
+  await expect(page.getByRole('heading', { name: 'ページ構成ガイド' })).toBeVisible()
+  await expect(page.getByText('日本語リンク遷移の確認ページです。')).toBeVisible()
 })
