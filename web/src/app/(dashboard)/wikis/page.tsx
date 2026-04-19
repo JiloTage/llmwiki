@@ -214,7 +214,10 @@ function HeaderUserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex h-6 w-6 items-center justify-center border border-border bg-card cursor-pointer hover:bg-muted transition-colors">
+        <button
+          data-testid="header-user-menu-trigger"
+          className="flex h-6 w-6 items-center justify-center border border-border bg-card cursor-pointer hover:bg-muted transition-colors"
+        >
           <span className="text-[9px] font-medium text-muted-foreground">{initials}</span>
         </button>
       </DropdownMenuTrigger>

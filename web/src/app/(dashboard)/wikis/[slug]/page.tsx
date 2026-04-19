@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useParams } from 'next/navigation'
 import { useKBStore, useUserStore } from '@/stores'
-import { KBDetail } from '@/components/kb/KBDetail'
+import { KBPortal } from '@/components/kb/KBPortal'
 import { Loader2 } from 'lucide-react'
 
 export default function KBPage() {
@@ -36,5 +36,5 @@ export default function KBPage() {
     )
   }
 
-  return <KBDetail key={kb.id} kbId={kb.id} kbSlug={kb.slug} kbName={kb.name} />
+  return <KBPortal key={kb.id} kbId={kb.id} kbSlug={kb.slug} kbName={kb.name} />
 }

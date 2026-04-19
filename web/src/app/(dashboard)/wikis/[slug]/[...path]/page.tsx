@@ -1,55 +1,31 @@
 'use client'
 
 import * as React from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
-import { useKBStore } from '@/stores'
-import { useKBDocuments } from '@/hooks/useKBDocuments'
+import { useKBStore, useUserStore } from '@/stores'
+import { KBPageView } from '@/components/kb/KBPageView'
 
 function normalizeRequestedPath(pathSegments: string[] | undefined): string {
   if (!pathSegments || pathSegments.length === 0) return '/'
   return `/${pathSegments.map((segment) => decodeURIComponent(segment)).join('/')}`
 }
 
-function buildDocumentPath(path: string, filename: string): string {
-  return `${path}${filename}`.replace(/\/+/g, '/')
-}
-
 export default function FilePage() {
-  const router = useRouter()
   const params = useParams<{ slug: string; path: string[] }>()
   const knowledgeBases = useKBStore((s) => s.knowledgeBases)
-  const kbLoading = useKBStore((s) => s.loading)
+  const loading = useKBStore((s) => s.loading)
+  const user = useUserStore((s) => s.user)
+  const requestedPath = React.useMemo(() => normalizeRequestedPath(params.path), [params.path])
 
   const kb = React.useMemo(
     () => knowledgeBases.find((item) => item.slug === params.slug),
     [knowledgeBases, params.slug],
   )
 
-  const { documents, loading: docsLoading } = useKBDocuments(kb?.id ?? '')
-  const requestedPath = React.useMemo(() => normalizeRequestedPath(params.path), [params.path])
-
-  const document = React.useMemo(() => {
-    if (!documents.length) return null
-    return documents.find((item) => buildDocumentPath(item.path, item.filename) === requestedPath) ?? null
-  }, [documents, requestedPath])
-
-  React.useEffect(() => {
-    if (kbLoading || !kb || docsLoading || !document) return
-
-    const fullPath = buildDocumentPath(document.path, document.filename)
-    if (document.path.startsWith('/wiki/')) {
-      const wikiPath = fullPath.replace(/^\/wiki\/?/, '')
-      router.replace(`/wikis/${params.slug}?page=${encodeURIComponent(wikiPath)}`)
-      return
-    }
-
-    router.replace(`/wikis/${params.slug}?doc=${document.id}`)
-  }, [kbLoading, kb, docsLoading, document, params.slug, router])
-
-  if (kbLoading || (kb && docsLoading) || document) {
+  if (loading || !user) {
     return (
-      <div className="flex items-center justify-center h-full bg-background">
+      <div className="flex h-full items-center justify-center bg-background">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
       </div>
     )
@@ -57,22 +33,18 @@ export default function FilePage() {
 
   if (!kb) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-2 bg-background">
+      <div className="flex h-full flex-col items-center justify-center gap-2 bg-background">
         <h1 className="text-lg font-medium">Wiki not found</h1>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-2 bg-background">
-      <h1 className="text-lg font-medium">Document not found</h1>
-      <p className="text-sm text-muted-foreground">{requestedPath} does not exist in this wiki.</p>
-      <button
-        onClick={() => router.push(`/wikis/${params.slug}`)}
-        className="mt-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-      >
-        Back to {kb.name}
-      </button>
-    </div>
+    <KBPageView
+      kbId={kb.id}
+      kbSlug={kb.slug}
+      kbName={kb.name}
+      requestedPath={requestedPath}
+    />
   )
 }

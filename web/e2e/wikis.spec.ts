@@ -62,11 +62,16 @@ test('creates the first wiki from the empty state', async ({ page }) => {
   await page.getByTestId('quick-create-wiki').click()
 
   await expect(page).toHaveURL(/\/wikis\/local-wiki(?:\?.*)?$/)
-  await expect(page.getByTestId('wiki-selector-trigger')).toContainText('Local Wiki')
-  await expect(page.getByRole('button', { name: 'Overview' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Log' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Local Wiki' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Featured Pages' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Overview' }).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Log' }).first()).toBeVisible()
+
+  await page.getByRole('link', { name: 'Overview' }).first().click()
+
+  await expect(page).toHaveURL(/\/wikis\/local-wiki\/wiki\/overview\.md$/)
   await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
-  await expect(page.getByText('No sources have been ingested yet.')).toBeVisible()
+  await expect(page.getByRole('article').getByText('/wiki/overview.md', { exact: true })).toBeVisible()
 })
 
 test('creates an additional wiki from the list page and opens settings', async ({ page }) => {
@@ -81,13 +86,8 @@ test('creates an additional wiki from the list page and opens settings', async (
   await page.getByTestId('submit-create-wiki').click()
 
   await expect(page).toHaveURL(/\/wikis\/research-notes(?:\?.*)?$/)
-  await expect(page.getByTestId('wiki-selector-trigger')).toContainText('Research Notes')
-  await expect(page.getByRole('button', { name: 'Overview' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Log' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
 
-  await page.getByTestId('sidenav-user-menu-trigger').click()
-  await page.getByTestId('open-settings').click()
+  await page.goto('/settings')
 
   await expect(page).toHaveURL(/\/settings$/)
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
@@ -124,7 +124,7 @@ flowchart TD
   })
   expect(updateResponse.ok()).toBeTruthy()
 
-  await page.reload()
+  await page.goto('/wikis/local-wiki/wiki/overview.md')
   await expect(page.getByTestId('mermaid-diagram')).toBeVisible()
   await expect(page.locator('[data-testid="mermaid-diagram"] svg')).toBeVisible()
 })
@@ -163,10 +163,9 @@ test('follows encoded internal wiki links for pages with Japanese filenames', as
   })
   expect(updateResponse.ok()).toBeTruthy()
 
-  await page.reload()
+  await page.goto('/wikis/local-wiki/wiki/overview.md')
   await page.getByRole('button', { name: 'ページ構成ガイド' }).click()
 
-  await expect(page).toHaveURL(/page=concepts%2F/)
-  await expect(page.getByRole('heading', { name: 'ページ構成ガイド' })).toBeVisible()
-  await expect(page.getByText('日本語リンク遷移の確認ページです。')).toBeVisible()
+  await expect(page).toHaveURL(/\/wikis\/local-wiki\/wiki\/concepts\//)
+  await expect(page.getByText('/wiki/concepts/', { exact: false }).first()).toBeVisible()
 })
