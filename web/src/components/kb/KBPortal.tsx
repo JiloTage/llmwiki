@@ -9,21 +9,16 @@ import {
   ChevronLeft,
   FileText,
   FolderOpen,
-  Loader2,
   NotepadText,
   Plus,
   Search,
   Upload,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useKBDocuments } from '@/hooks/useKBDocuments'
 import { apiFetch } from '@/lib/api'
+import { buildDocumentPath, toDocumentSummary, toWikiRoute } from '@/lib/documents'
 import { useUserStore } from '@/stores'
-import type { DocumentListItem } from '@/lib/types'
-
-function buildDocumentPath(path: string, filename: string): string {
-  return `${path}${filename}`.replace(/\/+/g, '/')
-}
+import type { DocumentListItem, DocumentSummary } from '@/lib/types'
 
 function normalizeWikiPath(path: string): string {
   let normalized = path.trim().replace(/^\/wiki\/?/, '').replace(/^\/+/, '')
@@ -41,12 +36,7 @@ function normalizeWikiPath(path: string): string {
   return normalized
 }
 
-function toWikiRoute(slug: string, fullPath: string): string {
-  const segments = fullPath.split('/').filter(Boolean).map(encodeURIComponent).join('/')
-  return segments ? `/wikis/${slug}/${segments}` : `/wikis/${slug}`
-}
-
-function sortDocs(docs: DocumentListItem[]): DocumentListItem[] {
+function sortDocs(docs: DocumentSummary[]): DocumentSummary[] {
   return [...docs].sort((a, b) => {
     const left = a.sort_order ?? 999
     const right = b.sort_order ?? 999
@@ -55,18 +45,18 @@ function sortDocs(docs: DocumentListItem[]): DocumentListItem[] {
   })
 }
 
-function sectionLabel(doc: DocumentListItem): string {
+function sectionLabel(doc: DocumentSummary): string {
   const relative = buildDocumentPath(doc.path, doc.filename).replace(/^\/wiki\/?/, '')
   const [first] = relative.split('/')
   if (!relative.includes('/')) return 'Core'
   return first.replace(/[-_]/g, ' ').replace(/\b\w/g, (value) => value.toUpperCase())
 }
 
-function relativeWikiPath(doc: DocumentListItem): string {
+function relativeWikiPath(doc: DocumentSummary): string {
   return buildDocumentPath(doc.path, doc.filename).replace(/^\/wiki\/?/, '')
 }
 
-function sourceMeta(doc: DocumentListItem): string {
+function sourceMeta(doc: DocumentSummary): string {
   const parts = [doc.file_type.toUpperCase()]
   if (doc.path && doc.path !== '/') parts.push(doc.path)
   return parts.join(' · ')
@@ -87,13 +77,13 @@ type Props = {
   kbId: string
   kbSlug: string
   kbName: string
-  initialDocuments?: DocumentListItem[]
+  initialDocuments?: DocumentSummary[]
 }
 
 export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { documents, setDocuments, loading, refetchDocuments } = useKBDocuments(kbId, initialDocuments)
+  const [documents, setDocuments] = React.useState<DocumentSummary[]>(() => initialDocuments ?? [])
 
   const wikiDocs = React.useMemo(
     () => sortDocs(documents.filter((doc) => doc.path.startsWith('/wiki/') && !doc.archived && doc.file_type === 'md')),
@@ -108,8 +98,6 @@ export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
   const docParam = searchParams.get('doc')
 
   React.useEffect(() => {
-    if (loading) return
-
     if (pageParam) {
       const nextPath = `/wiki/${normalizeWikiPath(pageParam)}`
       router.replace(toWikiRoute(kbSlug, nextPath))
@@ -122,19 +110,19 @@ export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
         router.replace(toWikiRoute(kbSlug, buildDocumentPath(match.path, match.filename)))
       }
     }
-  }, [docParam, documents, kbSlug, loading, pageParam, router])
+  }, [docParam, documents, kbSlug, pageParam, router])
 
   const featuredPages = React.useMemo(() => {
     const preferredOrder = ['overview.md', 'log.md']
-    const preferred = preferredOrder
+      const preferred = preferredOrder
       .map((name) => wikiDocs.find((doc) => doc.filename === name && doc.path === '/wiki/'))
-      .filter((doc): doc is DocumentListItem => Boolean(doc))
+      .filter((doc): doc is DocumentSummary => Boolean(doc))
     const remaining = wikiDocs.filter((doc) => !preferred.includes(doc)).slice(0, 6)
     return [...preferred, ...remaining]
   }, [wikiDocs])
 
   const sections = React.useMemo(() => {
-    const counts = new Map<string, { count: number; doc: DocumentListItem }>()
+    const counts = new Map<string, { count: number; doc: DocumentSummary }>()
     for (const doc of wikiDocs) {
       const label = sectionLabel(doc)
       const current = counts.get(label)
@@ -180,7 +168,7 @@ export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
         method: 'POST',
         body: JSON.stringify({ filename: 'Untitled.md', path: '/', content: '' }),
       })
-      setDocuments((prev) => [doc, ...prev])
+      setDocuments((prev) => [toDocumentSummary(doc), ...prev])
       router.push(toWikiRoute(kbSlug, buildDocumentPath(doc.path, doc.filename)))
     } catch {
       toast.error('Failed to create note')
@@ -191,7 +179,7 @@ export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
     const currentToken = getToken()
     if (!currentToken) return
 
-    const uploaded: DocumentListItem[] = []
+    const uploaded: DocumentSummary[] = []
     for (const file of files) {
       if (!/\.(md|txt)$/i.test(file.name)) {
         toast.error(`${file.name}: only .md and .txt files are supported`)
@@ -209,7 +197,7 @@ export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
             path: '/',
           }),
         })
-        uploaded.push(doc)
+        uploaded.push(toDocumentSummary(doc))
       } catch {
         toast.error(`Failed to upload ${file.name}`)
       }
@@ -218,9 +206,8 @@ export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
     if (uploaded.length > 0) {
       setDocuments((prev) => [...uploaded, ...prev])
       toast.success(`${uploaded.length} file(s) uploaded`)
-      void refetchDocuments()
     }
-  }, [getToken, kbId, refetchDocuments, setDocuments])
+  }, [getToken, kbId])
 
   const handleUploadClick = React.useCallback(() => {
     const input = document.createElement('input')
@@ -234,14 +221,6 @@ export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
     }
     input.click()
   }, [uploadFiles])
-
-  if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center bg-muted/55">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
 
   return (
     <div className="h-full overflow-y-auto bg-muted/55">

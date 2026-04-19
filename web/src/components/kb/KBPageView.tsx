@@ -3,105 +3,45 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, Loader2 } from 'lucide-react'
-import { useKBDocuments } from '@/hooks/useKBDocuments'
-import { apiFetch } from '@/lib/api'
-import { useUserStore } from '@/stores'
+import { ChevronLeft } from 'lucide-react'
+import { buildDocumentPath, toWikiRoute } from '@/lib/documents'
 import { NoteEditor } from '@/components/editor/NoteEditor'
-import { WikiContent } from '@/components/wiki/WikiContent'
-import type { DocumentListItem } from '@/lib/types'
-
-function buildDocumentPath(path: string, filename: string): string {
-  return `${path}${filename}`.replace(/\/+/g, '/')
-}
+import { RenderedWikiContent } from '@/components/wiki/RenderedWikiContent'
+import type { DocumentListItem, DocumentSummary, TocItem } from '@/lib/types'
 
 function isNoteFile(doc: DocumentListItem): boolean {
   return doc.file_type === 'md' || doc.file_type === 'txt'
 }
 
-function toWikiRoute(slug: string, fullPath: string): string {
-  const segments = fullPath.split('/').filter(Boolean).map(encodeURIComponent).join('/')
-  return segments ? `/wikis/${slug}/${segments}` : `/wikis/${slug}`
-}
-
-function resolveDocumentPath(currentPath: string, href: string): string {
-  if (href.startsWith('/')) return href
-
-  const baseParts = currentPath.split('/').filter(Boolean)
-  baseParts.pop()
-
-  for (const part of href.split('/')) {
-    if (!part || part === '.') continue
-    if (part === '..') {
-      baseParts.pop()
-    } else {
-      baseParts.push(part)
-    }
-  }
-
-  return `/${baseParts.join('/')}`
-}
-
 type Props = {
-  kbId: string
   kbSlug: string
   kbName: string
   requestedPath: string
-  initialDocuments?: DocumentListItem[]
-  initialPageContent?: string
-  initialPageContentDocumentId?: string | null
+  currentDocument: DocumentListItem | null
+  documentSummaries: DocumentSummary[]
+  initialDocumentContent?: string
+  tocItems?: TocItem[]
+  sourceCount?: number
+  children?: React.ReactNode
 }
 
 export function KBPageView({
-  kbId,
   kbSlug,
   kbName,
   requestedPath,
-  initialDocuments,
-  initialPageContent,
-  initialPageContentDocumentId,
+  currentDocument,
+  documentSummaries,
+  initialDocumentContent,
+  tocItems = [],
+  sourceCount = 0,
+  children,
 }: Props) {
   const router = useRouter()
-  const token = useUserStore((s) => s.accessToken)
-  const { documents, loading } = useKBDocuments(kbId, initialDocuments)
-  const [pageContent, setPageContent] = React.useState(initialPageContent ?? '')
-  const [pageLoading, setPageLoading] = React.useState(false)
-  const [loadedDocumentId, setLoadedDocumentId] = React.useState<string | null>(
-    initialPageContentDocumentId ?? null,
-  )
-
-  const document = React.useMemo(
-    () => documents.find((item) => buildDocumentPath(item.path, item.filename) === requestedPath) ?? null,
-    [documents, requestedPath],
-  )
 
   const sourceDocs = React.useMemo(
-    () => documents.filter((doc) => !doc.path.startsWith('/wiki/') && !doc.archived),
-    [documents],
+    () => documentSummaries.filter((doc) => !doc.path.startsWith('/wiki/') && !doc.archived),
+    [documentSummaries],
   )
-
-  React.useEffect(() => {
-    if (!token || !document || !document.path.startsWith('/wiki/')) {
-      setPageContent('')
-      setLoadedDocumentId(null)
-      return
-    }
-    if (loadedDocumentId === document.id) return
-
-    setPageLoading(true)
-    apiFetch<{ content: string }>(`/api/v1/documents/${document.id}/content`, token)
-      .then((response) => {
-        setPageContent(response.content || '')
-        setLoadedDocumentId(document.id)
-      })
-      .catch(() => setPageContent('Failed to load this wiki page.'))
-      .finally(() => setPageLoading(false))
-  }, [document, loadedDocumentId, token])
-
-  const handleWikiNavigate = React.useCallback((href: string) => {
-    const nextPath = resolveDocumentPath(requestedPath, href)
-    router.push(toWikiRoute(kbSlug, nextPath))
-  }, [kbSlug, requestedPath, router])
 
   const handleCitationSourceClick = React.useCallback((source: string) => {
     const filename = source.replace(/,\s*p\.?\s*.+$/, '').trim().toLowerCase()
@@ -114,15 +54,7 @@ export function KBPageView({
     }
   }, [kbSlug, router, sourceDocs])
 
-  if (loading || (document?.path.startsWith('/wiki/') && pageLoading)) {
-    return (
-      <div className="flex h-full items-center justify-center bg-muted/55">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
-
-  if (!document) {
+  if (!currentDocument) {
     return (
       <div className="flex h-full items-center justify-center bg-muted/55 px-6">
         <div className="wiki-paper max-w-xl px-8 py-10 text-center">
@@ -142,7 +74,7 @@ export function KBPageView({
     )
   }
 
-  if (isNoteFile(document) && !document.path.startsWith('/wiki/')) {
+  if (isNoteFile(currentDocument) && !currentDocument.path.startsWith('/wiki/')) {
     return (
       <div className="h-full bg-muted/55">
         <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6">
@@ -156,12 +88,12 @@ export function KBPageView({
         </div>
         <div className="h-[calc(100%-3.5rem)]">
           <NoteEditor
-            documentId={document.id}
-            initialContent={initialPageContentDocumentId === document.id ? initialPageContent : undefined}
-            initialTitle={document.title ?? document.filename}
-            initialTags={document.tags}
-            initialDate={document.date}
-            initialProperties={(document.metadata?.properties as Record<string, unknown> | undefined) ?? undefined}
+            documentId={currentDocument.id}
+            initialContent={initialDocumentContent}
+            initialTitle={currentDocument.title ?? currentDocument.filename}
+            initialTags={currentDocument.tags}
+            initialDate={currentDocument.date}
+            initialProperties={(currentDocument.metadata?.properties as Record<string, unknown> | undefined) ?? undefined}
             backLabel={kbName}
             onBack={() => router.push(`/wikis/${kbSlug}`)}
           />
@@ -182,15 +114,16 @@ export function KBPageView({
         </Link>
       </div>
       <div className="h-[calc(100%-3.5rem)]">
-        <WikiContent
-          content={pageContent}
-          title={document.title || document.filename.replace(/\.(md|txt)$/i, '')}
+        <RenderedWikiContent
+          title={currentDocument.title || currentDocument.filename.replace(/\.(md|txt)$/i, '')}
           path={requestedPath.replace(/^\/wiki\/?/, '')}
           kbName={kbName}
-          onNavigate={handleWikiNavigate}
+          tocItems={tocItems}
+          sourceCount={sourceCount}
           onSourceClick={handleCitationSourceClick}
-          documents={documents}
-        />
+        >
+          {children}
+        </RenderedWikiContent>
       </div>
     </div>
   )

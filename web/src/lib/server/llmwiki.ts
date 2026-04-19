@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { revalidateTag, unstable_cache } from "next/cache";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import type { DocumentSummary } from "@/lib/types";
 
 type JsonValue =
   | string
@@ -49,6 +51,18 @@ type DocumentRow = {
   sort_order: number;
   archived: number;
   created_at: string;
+  updated_at: string;
+};
+
+type DocumentSummaryRow = {
+  id: number;
+  knowledge_base_id: number;
+  filename: string;
+  title: string | null;
+  path: string;
+  file_type: string;
+  sort_order: number;
+  archived: number;
   updated_at: string;
 };
 
@@ -227,6 +241,7 @@ const MAX_CHUNK_LENGTH = 1800;
 const MAX_CHUNK_WITH_OVERLAP = 2400;
 const CHUNK_OVERLAP = 200;
 const SNIPPET_CONTEXT = 120;
+const KB_LIST_TAG = "knowledge-bases";
 
 export class ApiError extends Error {
   status: number;
@@ -361,6 +376,22 @@ function toDocument(row: DocumentRow) {
     error_message: null,
     url: null,
     created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+function toDocumentSummary(row: DocumentSummaryRow): DocumentSummary {
+  return {
+    id: String(row.id),
+    knowledge_base_id: String(row.knowledge_base_id),
+    filename: row.filename,
+    title: row.title,
+    path: row.path,
+    file_type: row.file_type,
+    status: "ready",
+    page_count: null,
+    sort_order: Number(row.sort_order ?? 0),
+    archived: Boolean(row.archived),
     updated_at: row.updated_at,
   };
 }
@@ -821,7 +852,27 @@ function extractSections(content: string, sectionNames: string[]) {
   return matches.length ? matches.join("\n\n") : `No sections matching ${sectionNames.join(", ")} found.`;
 }
 
-export async function listKnowledgeBases() {
+function kbDocumentsTag(knowledgeBaseId: number) {
+  return `knowledge-base:${knowledgeBaseId}:documents`;
+}
+
+function docContentTag(documentId: number) {
+  return `document:${documentId}:content`;
+}
+
+function invalidateKnowledgeBases() {
+  revalidateTag(KB_LIST_TAG, "max");
+}
+
+function invalidateKnowledgeBaseDocuments(knowledgeBaseId: number) {
+  revalidateTag(kbDocumentsTag(knowledgeBaseId), "max");
+}
+
+function invalidateDocumentContent(documentId: number) {
+  revalidateTag(docContentTag(documentId), "max");
+}
+
+async function listKnowledgeBasesRaw() {
   const db = await getDb();
   const rows = await all<KnowledgeBaseRow>(
     db,
@@ -850,6 +901,87 @@ export async function listKnowledgeBases() {
     ORDER BY kb.updated_at DESC`,
   );
   return rows.map(toKnowledgeBase);
+}
+
+async function listDocumentsRaw(knowledgeBaseId: string) {
+  const db = await getDb();
+  const kbId = ensureId(knowledgeBaseId);
+  await getKnowledgeBaseRowById(db, kbId);
+  const rows = await all<DocumentRow>(
+    db,
+    `SELECT
+      id,
+      knowledge_base_id,
+      filename,
+      title,
+      path,
+      file_type,
+      tags_json,
+      metadata_json,
+      date,
+      version,
+      sort_order,
+      archived,
+      created_at,
+      updated_at
+    FROM documents
+    WHERE knowledge_base_id = ?
+      AND archived = 0
+    ORDER BY path, sort_order, filename`,
+    [kbId],
+  );
+  return rows.map(toDocument);
+}
+
+async function listDocumentSummariesRaw(knowledgeBaseId: string) {
+  const db = await getDb();
+  const kbId = ensureId(knowledgeBaseId);
+  await getKnowledgeBaseRowById(db, kbId);
+  const rows = await all<DocumentSummaryRow>(
+    db,
+    `SELECT
+      id,
+      knowledge_base_id,
+      filename,
+      title,
+      path,
+      file_type,
+      sort_order,
+      archived,
+      updated_at
+    FROM documents
+    WHERE knowledge_base_id = ?
+      AND archived = 0
+    ORDER BY path, sort_order, filename`,
+    [kbId],
+  );
+  return rows.map(toDocumentSummary);
+}
+
+async function getDocumentContentRaw(id: string) {
+  const db = await getDb();
+  const row = await getDocumentRow(db, ensureId(id));
+  return {
+    id: String(row.id),
+    content: row.content ?? "",
+    version: Number(row.version),
+  };
+}
+
+async function getDocumentByPathRaw(knowledgeBaseId: string, fullPath: string) {
+  const db = await getDb();
+  const kbId = ensureId(knowledgeBaseId);
+  await getKnowledgeBaseRowById(db, kbId);
+  const row = await getLiveDocumentRow(db, kbId, fullPath);
+  return row ? toDocument(row) : null;
+}
+
+export async function listKnowledgeBases() {
+  const read = unstable_cache(listKnowledgeBasesRaw, ["knowledge-bases"], {
+    tags: [KB_LIST_TAG],
+    revalidate: 60,
+  });
+  return read();
 }
 
 export async function createKnowledgeBase(input: {
@@ -924,6 +1056,11 @@ export async function createKnowledgeBase(input: {
     await replaceDocumentChunks(db, logDoc.id, logContent, "Log", "log.md", "/wiki/");
   }
 
+  invalidateKnowledgeBases();
+  invalidateKnowledgeBaseDocuments(knowledgeBaseId);
+  if (overviewDoc?.id) invalidateDocumentContent(overviewDoc.id);
+  if (logDoc?.id) invalidateDocumentContent(logDoc.id);
+
   return toKnowledgeBase(await getKnowledgeBaseRowById(db, knowledgeBaseId));
 }
 
@@ -949,6 +1086,7 @@ export async function updateKnowledgeBase(id: string, input: {
     [nextName, nextSlug, nextDescription, toIsoNow(), knowledgeBaseId],
   );
 
+  invalidateKnowledgeBases();
   return toKnowledgeBase(await getKnowledgeBaseRowById(db, knowledgeBaseId));
 }
 
@@ -957,36 +1095,34 @@ export async function deleteKnowledgeBase(id: string) {
   const db = await getDb();
   await getKnowledgeBaseRowById(db, knowledgeBaseId);
   await run(db, "DELETE FROM knowledge_bases WHERE id = ?", [knowledgeBaseId]);
+  invalidateKnowledgeBases();
+  invalidateKnowledgeBaseDocuments(knowledgeBaseId);
 }
 
 export async function listDocuments(knowledgeBaseId: string) {
-  const db = await getDb();
   const kbId = ensureId(knowledgeBaseId);
-  await getKnowledgeBaseRowById(db, kbId);
-  const rows = await all<DocumentRow>(
-    db,
-    `SELECT
-      id,
-      knowledge_base_id,
-      filename,
-      title,
-      path,
-      file_type,
-      tags_json,
-      metadata_json,
-      date,
-      version,
-      sort_order,
-      archived,
-      created_at,
-      updated_at
-    FROM documents
-    WHERE knowledge_base_id = ?
-      AND archived = 0
-    ORDER BY path, sort_order, filename`,
-    [kbId],
+  const read = unstable_cache(
+    async () => listDocumentsRaw(String(kbId)),
+    [`knowledge-base:${kbId}:documents:full`],
+    {
+      tags: [kbDocumentsTag(kbId)],
+      revalidate: 60,
+    },
   );
-  return rows.map(toDocument);
+  return read();
+}
+
+export async function listDocumentSummaries(knowledgeBaseId: string) {
+  const kbId = ensureId(knowledgeBaseId);
+  const read = unstable_cache(
+    async () => listDocumentSummariesRaw(String(kbId)),
+    [`knowledge-base:${kbId}:documents:summaries`],
+    {
+      tags: [kbDocumentsTag(kbId)],
+      revalidate: 60,
+    },
+  );
+  return read();
 }
 
 export async function createNote(
@@ -1032,18 +1168,37 @@ export async function createNote(
 
   await replaceDocumentChunks(db, created.id, content, title, filename, requestedPath);
   await touchKnowledgeBase(db, kbId);
+  invalidateKnowledgeBases();
+  invalidateKnowledgeBaseDocuments(kbId);
+  invalidateDocumentContent(created.id);
 
   return toDocument(await getDocumentRow(db, created.id));
 }
 
 export async function getDocumentContent(id: string) {
-  const db = await getDb();
-  const row = await getDocumentRow(db, ensureId(id));
-  return {
-    id: String(row.id),
-    content: row.content ?? "",
-    version: Number(row.version),
-  };
+  const documentId = ensureId(id);
+  const read = unstable_cache(
+    async () => getDocumentContentRaw(String(documentId)),
+    [`document:${documentId}:content`],
+    {
+      tags: [docContentTag(documentId)],
+      revalidate: 60,
+    },
+  );
+  return read();
+}
+
+export async function getDocumentByPath(knowledgeBaseId: string, fullPath: string) {
+  const kbId = ensureId(knowledgeBaseId);
+  const read = unstable_cache(
+    async () => getDocumentByPathRaw(String(kbId), fullPath),
+    [`knowledge-base:${kbId}:document:${fullPath}`],
+    {
+      tags: [kbDocumentsTag(kbId)],
+      revalidate: 60,
+    },
+  );
+  return read();
 }
 
 export async function updateDocumentContent(id: string, content: string) {
@@ -1066,6 +1221,9 @@ export async function updateDocumentContent(id: string, content: string) {
     row.path,
   );
   await touchKnowledgeBase(db, row.knowledge_base_id);
+  invalidateKnowledgeBases();
+  invalidateKnowledgeBaseDocuments(row.knowledge_base_id);
+  invalidateDocumentContent(documentId);
 
   return {
     id: String(documentId),
@@ -1139,6 +1297,9 @@ export async function updateDocument(
     nextPath,
   );
   await touchKnowledgeBase(db, current.knowledge_base_id);
+  invalidateKnowledgeBases();
+  invalidateKnowledgeBaseDocuments(current.knowledge_base_id);
+  invalidateDocumentContent(documentId);
 
   return toDocument(await getDocumentRow(db, documentId));
 }
@@ -1153,6 +1314,9 @@ export async function deleteDocument(id: string) {
     [toIsoNow(), documentId],
   );
   await touchKnowledgeBase(db, current.knowledge_base_id);
+  invalidateKnowledgeBases();
+  invalidateKnowledgeBaseDocuments(current.knowledge_base_id);
+  invalidateDocumentContent(documentId);
 }
 
 export async function guideAction() {
@@ -1451,6 +1615,9 @@ export async function writeAction(input: {
     }
     await replaceDocumentChunks(db, created.id, content, cleanTitle, uniqueFilename, dirPath);
     await touchKnowledgeBase(db, kb.id);
+    invalidateKnowledgeBases();
+    invalidateKnowledgeBaseDocuments(kb.id);
+    invalidateDocumentContent(created.id);
 
     return {
       command: "create" as const,
@@ -1502,6 +1669,9 @@ export async function writeAction(input: {
   );
   await replaceDocumentChunks(db, document.id, nextContent, document.title, document.filename, document.path);
   await touchKnowledgeBase(db, kb.id);
+  invalidateKnowledgeBases();
+  invalidateKnowledgeBaseDocuments(kb.id);
+  invalidateDocumentContent(document.id);
 
   return {
     command: input.command,
@@ -1586,6 +1756,11 @@ export async function deleteAction(input: {
     })),
   );
   await touchKnowledgeBase(db, kb.id);
+  invalidateKnowledgeBases();
+  invalidateKnowledgeBaseDocuments(kb.id);
+  for (const doc of deletable) {
+    invalidateDocumentContent(doc.id);
+  }
 
   return {
     knowledge_base: kb.slug,

@@ -1,6 +1,6 @@
 import { KBPortal } from '@/components/kb/KBPortal'
 import { KnowledgeBaseStoreHydrator } from '@/components/kb/KnowledgeBaseStoreHydrator'
-import { listDocuments, listKnowledgeBases } from '@/lib/server/llmwiki'
+import { listDocumentSummaries, listKnowledgeBases } from '@/lib/server/llmwiki'
 
 export default async function KBPage({
   params,
@@ -22,7 +22,7 @@ export default async function KBPage({
     )
   }
 
-  const documents = await listDocuments(kb.id)
+  const documents = await listDocumentSummaries(kb.id)
 
   return (
     <>

@@ -41,16 +41,16 @@ import { cn } from '@/lib/utils'
 import { SourceAreaContextMenu, SourceContextMenu } from '@/components/kb/ContextMenus'
 import { SidenavUserMenu } from '@/components/kb/SidenavUserMenu'
 import { WikiSelector } from '@/components/kb/WikiSelector'
-import type { DocumentListItem, WikiNode, WikiSubsection } from '@/lib/types'
+import type { DocumentSummary, WikiNode, WikiSubsection } from '@/lib/types'
 
 interface SourceNode {
   type: 'folder' | 'document'
   name: string
-  doc?: DocumentListItem
+  doc?: DocumentSummary
   children?: SourceNode[]
 }
 
-function buildSourceTree(docs: DocumentListItem[]): SourceNode[] {
+function buildSourceTree(docs: DocumentSummary[]): SourceNode[] {
   const folders = new Map<string, SourceNode>()
   const root: SourceNode[] = []
 
@@ -110,9 +110,9 @@ interface KBSidenavProps {
   onWikiNavigate: (path: string) => void
   wikiActiveSubsections?: WikiSubsection[]
   onWikiSubsectionClick?: (id: string) => void
-  sourceDocs: DocumentListItem[]
+  sourceDocs: DocumentSummary[]
   activeSourceDocId: string | null
-  onSourceSelect: (doc: DocumentListItem) => void
+  onSourceSelect: (doc: DocumentSummary) => void
   hasWiki: boolean
   loading: boolean
   onCreateNote: () => void
@@ -199,7 +199,7 @@ export function KBSidenav({
   const sourceTree = React.useMemo(() => buildSourceTree(sourceDocs), [sourceDocs])
 
   const allSearchableItems = React.useMemo(() => {
-    const items: { type: 'wiki' | 'source'; title: string; path?: string; doc?: DocumentListItem }[] = []
+    const items: { type: 'wiki' | 'source'; title: string; path?: string; doc?: DocumentSummary }[] = []
 
     const addWikiNodes = (nodes: WikiNode[]) => {
       for (const node of nodes) {
@@ -638,7 +638,7 @@ function SourceTreeNode({
   depth: number
   activeDocId: string | null
   parentPath: string
-  onSelect: (doc: DocumentListItem) => void
+  onSelect: (doc: DocumentSummary) => void
   onDelete: (id: string) => void
   onRename: (id: string, newTitle: string) => void
   onMove: (docId: string, targetPath: string) => void
@@ -804,7 +804,7 @@ function SourceTreeNode({
   )
 }
 
-function sourceDocumentIcon(doc?: DocumentListItem) {
+function sourceDocumentIcon(doc?: DocumentSummary) {
   if (doc?.status === 'pending' || doc?.status === 'processing') {
     return <Loader2 className="size-3 shrink-0 animate-spin text-muted-foreground/60" />
   }

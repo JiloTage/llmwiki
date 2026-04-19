@@ -33,6 +33,26 @@ export interface Document {
 
 export type DocumentListItem = Omit<Document, 'content'>
 
+export interface DocumentSummary {
+  id: string
+  knowledge_base_id: string
+  filename: string
+  title: string | null
+  path: string
+  file_type: string
+  status: string
+  page_count: number | null
+  sort_order: number | null
+  archived: boolean
+  updated_at: string
+}
+
+export interface TocItem {
+  id: string
+  text: string
+  level: 2 | 3
+}
+
 export type PropertyType = 'text' | 'number' | 'date' | 'checkbox' | 'select' | 'url'
 
 export interface TypedProperty {

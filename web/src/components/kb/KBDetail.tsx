@@ -11,7 +11,7 @@ import { KBSidenav } from '@/components/kb/KBSidenav'
 import { SelectionActionBar } from '@/components/kb/SelectionActionBar'
 import { WikiContent, extractTocFromMarkdown } from '@/components/wiki/WikiContent'
 import { NoteEditor } from '@/components/editor/NoteEditor'
-import type { DocumentListItem, WikiNode, WikiSubsection } from '@/lib/types'
+import type { DocumentListItem, DocumentSummary, WikiNode, WikiSubsection } from '@/lib/types'
 
 function getWikiPathStorageKey(kbId: string): string {
   return `llmwiki:active-wiki-path:${kbId}`
@@ -242,7 +242,7 @@ export function KBDetail({ kbId, kbName }: Props) {
     updateUrl({ pagePath: path, docId: null })
   }, [updateUrl])
 
-  const handleSourceSelect = React.useCallback((doc: DocumentListItem) => {
+  const handleSourceSelect = React.useCallback((doc: DocumentListItem | DocumentSummary) => {
     setActiveSourceDocId(doc.id)
     setWikiActivePath(null)
     setSelectedIds(new Set())
