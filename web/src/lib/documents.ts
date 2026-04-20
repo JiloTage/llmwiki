@@ -9,6 +9,10 @@ export function toWikiRoute(slug: string, fullPath: string): string {
   return segments ? `/wikis/${slug}/${segments}` : `/wikis/${slug}`
 }
 
+export function toPortalRoute(slug: string): string {
+  return `/wikis/${slug}?portal=1`
+}
+
 export function resolveDocumentPath(currentPath: string, href: string): string {
   if (href.startsWith('/')) return href
 

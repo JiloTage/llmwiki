@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { BookOpen, Loader2, Moon, Plus, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { apiFetch } from '@/lib/api'
+import { toWikiRoute } from '@/lib/documents'
 import { LOCAL_ACCESS_TOKEN } from '@/lib/local-user'
 import type { KnowledgeBase } from '@/lib/types'
 import {
@@ -62,7 +63,7 @@ export function WikisPageClient({
       const displayName = initialUserEmail.split('@')[0].charAt(0).toUpperCase() + initialUserEmail.split('@')[0].slice(1)
       const kb = await createKB(`${displayName} Wiki`)
       setKnowledgeBases((current) => [kb, ...current])
-      router.push(`/wikis/${kb.slug}`)
+      router.push(toWikiRoute(kb.slug, '/wiki/overview.md'))
     } catch (error) {
       console.error('Failed to create wiki:', error)
     } finally {
@@ -78,7 +79,7 @@ export function WikisPageClient({
       setKnowledgeBases((current) => [kb, ...current])
       setDialogOpen(false)
       setName('')
-      router.push(`/wikis/${kb.slug}`)
+      router.push(toWikiRoute(kb.slug, '/wiki/overview.md'))
     } catch (error) {
       console.error('Failed to create wiki:', error)
     } finally {
@@ -130,7 +131,7 @@ export function WikisPageClient({
                 return (
                   <button
                     key={kb.id}
-                    onClick={() => router.push(`/wikis/${kb.slug}`)}
+                    onClick={() => router.push(toWikiRoute(kb.slug, '/wiki/overview.md'))}
                     className="group flex cursor-pointer flex-col items-start gap-3 overflow-hidden border border-border bg-card p-5 text-left transition-colors hover:bg-muted/45"
                   >
                     <div className="flex w-full min-w-0 items-center gap-3">

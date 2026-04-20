@@ -2,8 +2,11 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { loadMermaid } from '@/lib/mermaid-loader'
 import { cn } from '@/lib/utils'
+import { Breadcrumbs } from '@/components/layout/Breadcrumbs'
+import { toPortalRoute } from '@/lib/documents'
 import type { TocItem } from '@/lib/types'
 import { formatWikiPath } from '@/lib/wiki'
 
@@ -144,6 +147,7 @@ type Props = {
   title: string
   path?: string | null
   kbName?: string
+  kbSlug?: string
   tocItems: TocItem[]
   sourceCount: number
   onSourceClick?: (filename: string) => void
@@ -154,6 +158,7 @@ export function RenderedWikiContent({
   title,
   path,
   kbName,
+  kbSlug,
   tocItems,
   sourceCount,
   onSourceClick,
@@ -211,18 +216,31 @@ export function RenderedWikiContent({
       <div className={cn('mx-auto px-4 py-6 lg:px-6', hasToc ? 'max-w-[1400px]' : 'max-w-[1100px]')}>
         <div className={cn(hasToc && 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]')}>
           <article className="wiki-paper min-w-0">
-            <div className="border-b border-border bg-muted/35 px-6 py-2 text-xs text-muted-foreground lg:px-8">
-              <span className="text-foreground">LLM Wiki</span>
-              {kbName ? <span>{` / ${kbName}`}</span> : null}
-              {formattedPath ? <span>{` / ${formattedPath}`}</span> : null}
-            </div>
             <header className="px-6 py-5 lg:px-8">
+              <Breadcrumbs
+                className="mb-4"
+                items={[
+                  { label: 'All wikis', href: '/wikis' },
+                  ...(kbName
+                    ? [{ label: kbName, href: kbSlug ? toPortalRoute(kbSlug) : undefined }]
+                    : []),
+                  { label: title },
+                ]}
+              />
               <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-1">
                 <div>
                   <div className="wiki-section-label mb-2">Article</div>
                   {title ? <h1 className="wiki-heading text-[2rem] leading-none text-foreground">{title}</h1> : null}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                  {kbSlug ? (
+                    <Link
+                      href={toPortalRoute(kbSlug)}
+                      className="border border-border bg-background px-2 py-1 text-foreground transition-colors hover:bg-muted"
+                    >
+                      Open portal
+                    </Link>
+                  ) : null}
                   {formattedPath ? <span className="border border-border bg-background px-2 py-1">{formattedPath}</span> : null}
                   <span className="border border-border bg-background px-2 py-1">{tocItems.length} sections</span>
                   <span className="border border-border bg-background px-2 py-1">{sourceCount} sources</span>

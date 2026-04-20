@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
+import { toWikiRoute } from '@/lib/documents'
 import { useKBStore } from '@/stores'
 import { Loader2 } from 'lucide-react'
 
@@ -23,7 +24,7 @@ export default function NewKnowledgeBasePage() {
 
     try {
       const kb = await createKB(trimmed, description.trim() || undefined)
-      router.push(`/wikis/${kb.slug}`)
+      router.push(toWikiRoute(kb.slug, '/wiki/overview.md'))
     } catch (err) {
       setError((err as Error).message || 'Failed to create wiki')
       setLoading(false)

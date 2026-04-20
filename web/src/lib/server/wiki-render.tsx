@@ -85,6 +85,7 @@ export function renderWikiPage({
         return (
           <div
             className="mermaid-diagram flex min-h-40 items-center justify-center text-sm text-muted-foreground"
+            data-testid="mermaid-diagram"
             data-mermaid-chart={mermaidChart}
           >
             Rendering diagram...

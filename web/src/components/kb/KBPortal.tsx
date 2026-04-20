@@ -6,17 +6,16 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowRight,
   BookOpen,
-  ChevronLeft,
   FileText,
   FolderOpen,
   NotepadText,
   Plus,
-  Search,
   Upload,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiFetch } from '@/lib/api'
 import { buildDocumentPath, toDocumentSummary, toWikiRoute } from '@/lib/documents'
+import { Breadcrumbs } from '@/components/layout/Breadcrumbs'
 import { useUserStore } from '@/stores'
 import type { DocumentListItem, DocumentSummary } from '@/lib/types'
 
@@ -225,22 +224,16 @@ export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
   return (
     <div className="h-full overflow-y-auto bg-muted/55">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        <div className="mb-6 flex items-center justify-between text-sm">
-          <Link
-            href="/wikis"
-            className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ChevronLeft className="size-4" />
-            All wikis
-          </Link>
-          <div className="text-muted-foreground">/{kbSlug}</div>
-        </div>
+        <Breadcrumbs
+          className="mb-6"
+          items={[
+            { label: 'All wikis', href: '/wikis' },
+            { label: kbName },
+            { label: 'Portal' },
+          ]}
+        />
 
         <section className="wiki-paper">
-          <div className="flex items-center justify-between border-b border-border bg-muted/35 px-4 py-2 text-xs text-muted-foreground">
-            <span>Wiki Portal</span>
-            <span>{wikiDocs.length + sourceDocs.length} documents indexed</span>
-          </div>
           <div className="px-4 py-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0 flex-1">
@@ -269,16 +262,6 @@ export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
                 >
                   <Plus className="size-4" />
                   Create note
-                </button>
-                <button
-                  onClick={() => {
-                    const overview = wikiDocs.find((doc) => doc.path === '/wiki/' && doc.filename === 'overview.md')
-                    if (overview) router.push(toWikiRoute(kbSlug, buildDocumentPath(overview.path, overview.filename)))
-                  }}
-                  className="inline-flex items-center gap-2 border border-border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted cursor-pointer"
-                >
-                  <Search className="size-4" />
-                  Open overview
                 </button>
               </div>
             </div>

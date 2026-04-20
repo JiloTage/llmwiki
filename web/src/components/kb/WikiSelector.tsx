@@ -13,6 +13,7 @@ import {
   CommandSeparator,
 } from '@/components/ui/command'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { toWikiRoute } from '@/lib/documents'
 import { useKBStore } from '@/stores'
 
 export function WikiSelector({ kbName }: { kbName: string }) {
@@ -31,7 +32,7 @@ export function WikiSelector({ kbName }: { kbName: string }) {
       const kb = await createKB(newName.trim())
       setCreateDialogOpen(false)
       setNewName('')
-      router.push(`/wikis/${kb.slug}`)
+      router.push(toWikiRoute(kb.slug, '/wiki/overview.md'))
     } catch {
       // error handled by store
     } finally {
@@ -68,7 +69,7 @@ export function WikiSelector({ kbName }: { kbName: string }) {
                   value={kb.name}
                   onSelect={() => {
                     setOpen(false)
-                    router.push(`/wikis/${kb.slug}`)
+                    router.push(toWikiRoute(kb.slug, '/wiki/overview.md'))
                   }}
                 >
                   {kb.name}
