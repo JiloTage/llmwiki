@@ -2,12 +2,10 @@ import { NextResponse } from "next/server";
 import {
   guideAction,
   handleApiError,
-  requireAccessToken,
 } from "@/lib/server/llmwiki";
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
-    await requireAccessToken(request);
     return NextResponse.json(await guideAction());
   } catch (error) {
     return handleApiError(error);

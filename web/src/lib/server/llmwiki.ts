@@ -89,7 +89,9 @@ You are connected to an **LLM Wiki** - a personal knowledge workspace where you 
 
 1. **Raw Sources** (path: \`/\`) - uploaded documents (PDFs, notes, images, spreadsheets). Source of truth. Read-only.
 2. **Compiled Wiki** (path: \`/wiki/\`) - markdown pages YOU create and maintain. You own this layer.
-3. **Tools** - \`search\`, \`read\`, \`write\`, \`delete\` - your interface to both layers.
+3. **Tools** - \`guide\`, \`create_wiki\`, \`search\`, \`read\`, \`write\`, \`delete\` - your interface to both layers.
+
+If the user needs a new wiki and no suitable knowledge base exists yet, create it first with \`create_wiki\`.
 
 ## Wiki Structure
 
@@ -209,6 +211,12 @@ Rules:
 Link between wiki pages using standard markdown links to other wiki paths.
 
 ## Core Workflows
+
+### Start a New Wiki
+1. Call \`guide()\` to inspect the current knowledge bases
+2. If none fit the user's request, call \`create_wiki(name="...", description="...")\`
+3. Read \`/wiki/overview.md\` and \`/wiki/log.md\` in the new wiki before adding pages or sources
+4. Continue with normal source ingestion or wiki authoring
 
 ### Ingest a New Source
 1. Read it: \`read(path="source.pdf", pages="1-10")\`
@@ -1324,6 +1332,13 @@ export async function guideAction() {
     instructions: GUIDE_TEXT,
     knowledge_bases: await listKnowledgeBases(),
   };
+}
+
+export async function createWikiAction(input: {
+  name?: string;
+  description?: string | null;
+}) {
+  return createKnowledgeBase(input);
 }
 
 export async function searchAction(input: {

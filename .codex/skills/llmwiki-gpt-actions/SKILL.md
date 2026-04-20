@@ -1,8 +1,78 @@
+---
+name: llmwiki-gpt-actions
+description: LLM Wiki の GPT Actions を単体で扱うための self-contained skill です。repo 外へ持ち出しても、prompt、guide、action surface、実行手順がこの skill だけで分かる状態を目指します。
+---
+
+# LLM Wiki GPT Actions
+
+この skill は self-contained を前提にします。
+repo 内の `docs/` や `web/` を読めない環境でも使えるように、運用ルールと guide 本文をこの skill に含めます。
+
+## 前提
+
+- 既定の接続先は本番 URL: `https://llmwiki.tettoutower.workers.dev`
+- 認証は共有 Bearer token: `Authorization: Bearer <LOCAL_ACCESS_TOKEN>`
+- 利用する action は `guide`, `create_wiki`, `search`, `read`, `write`, `delete`
+- helper script はローカル開発環境ではなく、デプロイ済み endpoint に対してもそのまま使える
+
+## 使い方
+
+この skill を使う場面:
+
+- GPT Builder 用の instructions を組み立てる
+- OpenAPI schema に載る action surface を確認する
+- `guide` から始まる wiki 作業フローを確認する
+- デプロイ済み endpoint に対して action を手で叩く
+
+## 実行方法
+
+shell を前提にしない例として `python3` と `curl` を使います。
+`python3` が無ければ、任意の Python 実行パスに読み替えてください。
+
+### helper script
+
+```sh
+export LLMWIKI_ACCESS_TOKEN='<LOCAL_ACCESS_TOKEN>'
+python3 llmwiki_actions.py guide
+python3 llmwiki_actions.py create_wiki --data '{"name":"Local Wiki","description":"Scratch wiki"}'
+python3 llmwiki_actions.py search --data '{"knowledge_base":"local-wiki","mode":"list"}'
+```
+
+### curl
+
+```sh
+curl -sS \
+  -H "Authorization: Bearer <LOCAL_ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{}' \
+  https://llmwiki.tettoutower.workers.dev/api/v1/actions/guide
+```
+
+```sh
+curl -sS \
+  -H "Authorization: Bearer <LOCAL_ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Local Wiki","description":"Scratch wiki"}' \
+  https://llmwiki.tettoutower.workers.dev/api/v1/actions/create-wiki
+```
+
+## 推奨 system prompt
+
+次の文面を GPT Builder の instructions のベースとして使えます。
+
+```text
+You are connected to an LLM Wiki workspace. The user has uploaded files, notes, and documents that you can read, search, edit, and organize. Your job is to work with these materials - answer questions, take notes, and compile structured wiki pages from the raw sources. Call the `guide` tool first to see available knowledge bases and learn the full workflow. If no existing knowledge base matches the user's request, call `create_wiki` to create a new wiki before continuing.
+```
+
+## guide 本文
+
+以下は `guide` tool が返すべき内容としてこの skill 内に保持する本文です。
+repo 側の guide 読み込みに依存せず、この skill 単体で workflow を再利用できます。
+
+```markdown
 # LLM Wiki - How It Works
 
 You are connected to an **LLM Wiki** - a personal knowledge workspace where you compile and maintain a structured wiki from raw source documents.
-
-The GPT Actions endpoints do not require authentication.
 
 ## Architecture
 
@@ -45,7 +115,7 @@ Each entity page should: describe what it is, note key facts, cite sources, and 
 Always exists. Append-only. Records every ingest, major edit, and lint pass. Never delete entries.
 
 Format - each entry starts with a parseable header:
-```
+```text
 ## [YYYY-MM-DD] ingest | Source Title
 - Created concept page: [Page Title](concepts/page.md)
 - Updated entity page: [Page Title](entities/page.md)
@@ -95,7 +165,7 @@ Parent pages summarize; child pages go deep. The UI renders this as an expandabl
 - Quadrant charts for comparisons, trade-off analyses
 - Entity relationship diagrams for people, companies, concepts
 
-````
+````markdown
 ```mermaid
 graph LR
     A[Input] --> B[Process] --> C[Output]
@@ -113,7 +183,7 @@ graph LR
 ### Citations - REQUIRED
 
 Every factual claim MUST cite its source via markdown footnotes:
-```
+```text
 Transformers use self-attention[^1] that scales quadratically[^2].
 
 [^1]: attention-paper.pdf, p.3
@@ -155,5 +225,25 @@ Link between wiki pages using standard markdown links to other wiki paths.
 
 ### Maintain the Wiki (Lint)
 Check for: contradictions, orphan pages, missing cross-references, stale claims, concepts mentioned but lacking their own page. Append a lint entry to `/wiki/log.md`.
+```
 
-## Available Knowledge Bases
+## Action Surface
+
+- `guide`
+  Return workflow instructions plus available knowledge bases.
+- `create_wiki`
+  Create a new knowledge base when no existing wiki fits.
+- `search`
+  List documents or full-text search within a knowledge base.
+- `read`
+  Read one document or a small batch by supported glob.
+- `write`
+  Create, append, or exact-replace document content.
+- `delete`
+  Archive documents by exact path or supported glob.
+
+## 期待する良い状態
+
+- skill 単体で prompt、guide、action surface、叩き方が分かる
+- 既定の接続先がローカルではなくデプロイ済み URL になっている
+- shell に依存した説明がなく、`python3` と `curl` で再現できる

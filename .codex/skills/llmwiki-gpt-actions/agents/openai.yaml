@@ -1,0 +1,4 @@
+interface:
+  display_name: "LLM Wiki GPT Actions"
+  short_description: "LLM Wiki の GPT Actions を self-contained に扱う skill。"
+  default_prompt: "LLM Wiki の GPT Actions を使うときは $llmwiki-gpt-actions を参照し、まず `guide` を呼んでから必要なら `create_wiki` に進んでください。"

@@ -1,20 +1,16 @@
 import { NextResponse } from "next/server";
 import {
+  createWikiAction,
   handleApiError,
-  searchAction,
 } from "@/lib/server/llmwiki";
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
-      knowledge_base: string;
-      mode?: "list" | "search";
-      query?: string;
-      path?: string;
-      tags?: string[] | null;
-      limit?: number;
+      name?: string;
+      description?: string | null;
     };
-    return NextResponse.json(await searchAction(body));
+    return NextResponse.json(await createWikiAction(body));
   } catch (error) {
     return handleApiError(error);
   }

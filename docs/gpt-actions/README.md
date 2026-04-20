@@ -18,12 +18,14 @@
 3. GPT Instructions のベースとして `system-prompt.md` の内容を使います。
 4. OpenAPI schema から次の action が読み込まれることを確認します。
    - `POST /api/v1/actions/guide`
+   - `POST /api/v1/actions/create-wiki`
    - `POST /api/v1/actions/search`
    - `POST /api/v1/actions/read`
    - `POST /api/v1/actions/write`
    - `POST /api/v1/actions/delete`
 5. GPT には最初に `guide` を呼ぶよう指示します。
    これで knowledge base 一覧と wiki 運用ルールを最初に取得できます。
+6. 既存 knowledge base が合わない場合は `create_wiki` を呼んで新しい wiki を作るよう指示します。
 
 ## 補足
 

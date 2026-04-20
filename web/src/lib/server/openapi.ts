@@ -10,21 +10,12 @@ function actionOperation(
     operationId: summary,
     summary,
     description,
-    security: [{ bearerAuth: [] }],
     responses: {
       "200": {
         description: "Successful response",
         content: {
           "application/json": {
             schema: { $ref: responseSchemaRef },
-          },
-        },
-      },
-      "401": {
-        description: "Missing or invalid bearer token",
-        content: {
-          "application/json": {
-            schema: { $ref: "#/components/schemas/ErrorResponse" },
           },
         },
       },
@@ -82,18 +73,10 @@ export function buildOpenApiDocument(origin: string) {
       version: "1.0.0",
       description:
         "OpenAPI schema for the deployed LLM Wiki GPT Actions endpoints. " +
-        "All actions use a shared bearer token via the Authorization header.",
+        "GPT Actions endpoints do not require authentication.",
     },
     servers: [{ url: origin }],
     components: {
-      securitySchemes: {
-        bearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "Bearer",
-          description: "Shared token configured from LOCAL_ACCESS_TOKEN.",
-        },
-      },
       schemas: {
         ErrorResponse: {
           type: "object",
@@ -126,6 +109,15 @@ export function buildOpenApiDocument(origin: string) {
             "created_at",
             "updated_at",
           ],
+        },
+        CreateWikiRequest: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            name: { type: "string" },
+            description: nullableStringSchema,
+          },
+          required: ["name"],
         },
         GuideResponse: {
           type: "object",
@@ -350,6 +342,14 @@ export function buildOpenApiDocument(origin: string) {
           "guide",
           "Get started with LLM Wiki. Call this first to discover available knowledge bases and workflow rules.",
           "#/components/schemas/GuideResponse",
+        ),
+      },
+      "/api/v1/actions/create-wiki": {
+        post: actionOperation(
+          "create_wiki",
+          "Create a new wiki when no existing knowledge base fits the user's request.",
+          "#/components/schemas/GuideKnowledgeBase",
+          "#/components/schemas/CreateWikiRequest",
         ),
       },
       "/api/v1/actions/search": {
