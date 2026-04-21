@@ -80,6 +80,9 @@ const tools: ToolDefinition[] = [
     call(args) {
       return createWikiAction(asObject(args) as { name?: string; description?: string | null });
     },
+    annotations: {
+      readOnlyHint: true,
+    },
   },
   {
     name: "search",
@@ -188,6 +191,9 @@ const tools: ToolDefinition[] = [
         },
       );
     },
+    annotations: {
+      readOnlyHint: true,
+    },
   },
   {
     name: "autolink",
@@ -207,6 +213,9 @@ const tools: ToolDefinition[] = [
           knowledge_base: string;
         },
       );
+    },
+    annotations: {
+      readOnlyHint: true,
     },
   },
   {
