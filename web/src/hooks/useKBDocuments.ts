@@ -3,26 +3,21 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { apiFetch } from '@/lib/api'
-import { useUserStore } from '@/stores'
 import type { DocumentListItem } from '@/lib/types'
 
 export function useKBDocuments(knowledgeBaseId: string, initialDocuments?: DocumentListItem[]) {
   const [documents, setDocuments] = React.useState<DocumentListItem[]>(() => initialDocuments ?? [])
   const [loading, setLoading] = React.useState(initialDocuments === undefined)
-  const token = useUserStore((s) => s.accessToken)
 
   const fetchDocuments = React.useCallback(async () => {
-    if (!knowledgeBaseId || !token) {
+    if (!knowledgeBaseId) {
       setDocuments([])
       setLoading(false)
       return
     }
 
     try {
-      const data = await apiFetch<DocumentListItem[]>(
-        `/api/v1/knowledge-bases/${knowledgeBaseId}/documents`,
-        token,
-      )
+      const data = await apiFetch<DocumentListItem[]>(`/api/v1/knowledge-bases/${knowledgeBaseId}/documents`)
       setDocuments(data ?? [])
     } catch (error) {
       console.error('Failed to load documents:', error)
@@ -31,7 +26,7 @@ export function useKBDocuments(knowledgeBaseId: string, initialDocuments?: Docum
     } finally {
       setLoading(false)
     }
-  }, [knowledgeBaseId, token])
+  }, [knowledgeBaseId])
 
   React.useEffect(() => {
     if (initialDocuments !== undefined) return

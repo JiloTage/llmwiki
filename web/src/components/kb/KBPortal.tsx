@@ -16,7 +16,6 @@ import { toast } from 'sonner'
 import { apiFetch } from '@/lib/api'
 import { buildDocumentPath, toDocumentSummary, toWikiRoute } from '@/lib/documents'
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs'
-import { useUserStore } from '@/stores'
 import type { DocumentListItem, DocumentSummary } from '@/lib/types'
 
 function normalizeWikiPath(path: string): string {
@@ -149,21 +148,9 @@ export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
     [sourceDocs, wikiDocs],
   )
 
-  const getToken = React.useCallback(() => {
-    const currentToken = useUserStore.getState().accessToken
-    if (!currentToken) {
-      toast.error('Missing access token')
-      return null
-    }
-    return currentToken
-  }, [])
-
   const handleCreateNote = async () => {
-    const currentToken = getToken()
-    if (!currentToken) return
-
     try {
-      const doc = await apiFetch<DocumentListItem>(`/api/v1/knowledge-bases/${kbId}/documents/note`, currentToken, {
+      const doc = await apiFetch<DocumentListItem>(`/api/v1/knowledge-bases/${kbId}/documents/note`, {
         method: 'POST',
         body: JSON.stringify({ filename: 'Untitled.md', path: '/', content: '' }),
       })
@@ -175,9 +162,6 @@ export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
   }
 
   const uploadFiles = React.useCallback(async (files: File[]) => {
-    const currentToken = getToken()
-    if (!currentToken) return
-
     const uploaded: DocumentSummary[] = []
     for (const file of files) {
       if (!/\.(md|txt)$/i.test(file.name)) {
@@ -187,7 +171,7 @@ export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
 
       try {
         const content = await file.text()
-        const doc = await apiFetch<DocumentListItem>(`/api/v1/knowledge-bases/${kbId}/documents/note`, currentToken, {
+        const doc = await apiFetch<DocumentListItem>(`/api/v1/knowledge-bases/${kbId}/documents/note`, {
           method: 'POST',
           body: JSON.stringify({
             filename: file.name,
@@ -206,7 +190,7 @@ export function KBPortal({ kbId, kbSlug, kbName, initialDocuments }: Props) {
       setDocuments((prev) => [...uploaded, ...prev])
       toast.success(`${uploaded.length} file(s) uploaded`)
     }
-  }, [getToken, kbId])
+  }, [kbId])
 
   const handleUploadClick = React.useCallback(() => {
     const input = document.createElement('input')

@@ -1,6 +1,5 @@
 export async function apiFetch<T>(
   path: string,
-  token?: string | null,
   options?: RequestInit,
 ): Promise<T> {
   const res = await fetch(path, {
@@ -8,7 +7,6 @@ export async function apiFetch<T>(
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   })
   if (!res.ok) {

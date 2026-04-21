@@ -10,7 +10,6 @@
 ## 1. 前提
 
 - 用途は完全個人用とする。
-- 認証は単一ユーザー + 共通 Bearer トークンを維持する。
 - 入力対象はテキストファイルのみとする。
 - 配置先は Cloudflare 無料枠を前提とする。
 - データベースは D1 を使う。
@@ -25,7 +24,7 @@
 - 保存対象は wiki とテキスト文書のみとし、本文は D1 に保存する。
 - 検索は D1 の FTS5 を使う。
 - URL は同一オリジンの `/api/v1/*` に統一する。
-- フロントエンドは単一ユーザー + 共通 Bearer トークン前提の個人用 UI にする。
+- フロントエンドは単一ユーザー前提の個人用 UI にする。
 - `mcp/` は今回の Cloudflare デプロイ対象外とする。
 
 ### 2.2 採用しないもの
@@ -303,12 +302,6 @@ API は Next.js Route Handlers で実装する。
 - `PATCH /documents/:id` は `title`, `path`, `tags`, `date`, `metadata`, `sort_order` のみ更新可能とする。
 - `DELETE` は `archived = 1` の論理削除とする。
 
-認証:
-
-- 全 API は `Authorization: Bearer <LOCAL_ACCESS_TOKEN>` を必須とする。
-- Bearer トークンは Cloudflare Workers の環境変数として保持する。
-- 現行 `api/auth.py` 相当の検証を Route Handlers 側に移す。
-
 ### 12.3 actions
 
 - `POST /api/v1/actions/guide`
@@ -350,14 +343,14 @@ API は Next.js Route Handlers で実装する。
 
 ### 14.1 認証周り
 
-認証 UI は簡略化してもよいが、共通 Bearer トークン前提は維持する。
+認証 UI は持たず、単一ユーザー前提の固定ユーザー情報だけを初期化する。
 
 確定事項:
 
-- `LOCAL_ACCESS_TOKEN` は維持する
-- `NEXT_PUBLIC_LOCAL_ACCESS_TOKEN` は維持する
-- `AuthProvider` と `useUserStore.accessToken` は維持してよい
-- API 呼び出しには `Authorization: Bearer <LOCAL_ACCESS_TOKEN>` を付ける
+- `LOCAL_ACCESS_TOKEN` は廃止する
+- `NEXT_PUBLIC_LOCAL_ACCESS_TOKEN` は廃止する
+- `AuthProvider` は固定ユーザー情報のみ初期化する
+- API 呼び出しに `Authorization` header は付けない
 - `onboarding` と実ユーザー認証フローは削除対象のままとする
 
 ### 14.2 `apiFetch`
@@ -369,7 +362,6 @@ API は Next.js Route Handlers で実装する。
 - ベース URL は持たない
 - `path` は必ず `/api/v1/...` を受ける
 - `Content-Type: application/json` は維持する
-- Bearer トークンを受け取り `Authorization` header を付ける
 
 ### 14.3 ドキュメント一覧
 
@@ -563,7 +555,6 @@ Windows 補足:
 ## 20. 実装時の禁止事項
 
 - `/v1/*` と `/api/v1/*` を混在させない
-- Bearer トークン前提を勝手に外さない
 - polling を再導入しない
 - PDF/画像/OCR 系のコードを温存しない
 - D1 版で `document_number` を新規正本 ID に戻さない

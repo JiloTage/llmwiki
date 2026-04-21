@@ -71,11 +71,6 @@ type ChunkRow = {
   header_breadcrumb: string;
 };
 
-const LOCAL_ACCESS_TOKEN =
-  process.env.LOCAL_ACCESS_TOKEN ||
-  process.env.NEXT_PUBLIC_LOCAL_ACCESS_TOKEN ||
-  "local-dev-session";
-
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ||
   process.env.APP_URL ||
@@ -269,17 +264,6 @@ export function handleApiError(error: unknown) {
 
   console.error(error);
   return NextResponse.json({ detail: "Internal server error" }, { status: 500 });
-}
-
-export async function requireAccessToken(request: Request) {
-  const header = request.headers.get("Authorization") ?? "";
-  const [scheme, token] = header.split(" ");
-  if (scheme?.toLowerCase() !== "bearer" || !token) {
-    throw new ApiError(401, "Unauthorized");
-  }
-  if (token.trim() !== LOCAL_ACCESS_TOKEN) {
-    throw new ApiError(401, "Invalid token");
-  }
 }
 
 async function getDb(): Promise<D1DatabaseLike> {

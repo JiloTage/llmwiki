@@ -6,7 +6,6 @@ import { BookOpen, Loader2, Moon, Plus, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { apiFetch } from '@/lib/api'
 import { toWikiRoute } from '@/lib/documents'
-import { LOCAL_ACCESS_TOKEN } from '@/lib/local-user'
 import type { KnowledgeBase } from '@/lib/types'
 import {
   Dialog,
@@ -51,7 +50,7 @@ export function WikisPageClient({
   const [name, setName] = React.useState('')
 
   const createKB = React.useCallback(async (kbName: string) => {
-    return apiFetch<KnowledgeBase>('/api/v1/knowledge-bases', LOCAL_ACCESS_TOKEN, {
+    return apiFetch<KnowledgeBase>('/api/v1/knowledge-bases', {
       method: 'POST',
       body: JSON.stringify({ name: kbName }),
     })

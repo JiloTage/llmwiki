@@ -3,12 +3,10 @@ import {
   createKnowledgeBase,
   handleApiError,
   listKnowledgeBases,
-  requireAccessToken,
 } from "@/lib/server/llmwiki";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    await requireAccessToken(request);
     return NextResponse.json(await listKnowledgeBases());
   } catch (error) {
     return handleApiError(error);
@@ -17,7 +15,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    await requireAccessToken(request);
     const body = (await request.json()) as { name?: string; description?: string | null };
     return NextResponse.json(await createKnowledgeBase(body), { status: 201 });
   } catch (error) {

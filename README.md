@@ -19,7 +19,6 @@
 
 ## 現在の前提
 
-- 認証は共有 Bearer token のみです。
 - 単一ローカルユーザー前提です。
 - 本番 API は `web/src/app/api/v1/*` の Route Handlers が提供します。
 - MCP endpoint は `web/src/app/mcp/route.ts` が提供します。
@@ -42,8 +41,6 @@ GPT Actions と MCP はどちらも同じ server 実装を呼び、実体は `we
 ```env
 APP_URL=http://localhost:3000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-LOCAL_ACCESS_TOKEN=local-dev-session
-NEXT_PUBLIC_LOCAL_ACCESS_TOKEN=local-dev-session
 NEXT_PUBLIC_LOCAL_USER_ID=00000000-0000-4000-8000-000000000001
 NEXT_PUBLIC_LOCAL_USER_EMAIL=local@llmwiki.local
 # Optional: settings page MCP snippet
@@ -62,12 +59,11 @@ MCP を手動で叩く最小例:
 
 ```bash
 curl -X POST http://localhost:3000/mcp \
-  -H 'Authorization: Bearer local-dev-session' \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"example","version":"1.0.0"}}}'
 ```
 
-Settings 画面の MCP snippet は `NEXT_PUBLIC_MCP_URL` と `NEXT_PUBLIC_LOCAL_ACCESS_TOKEN` から組み立てます。未指定なら `http://localhost:3000/mcp` を使います。
+Settings 画面の MCP snippet は `NEXT_PUBLIC_MCP_URL` から組み立てます。未指定なら `http://localhost:3000/mcp` を使います。
 
 ## 確認コマンド
 

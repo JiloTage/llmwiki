@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Upload as UploadIcon, BookOpen, ArrowUpRight, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useUserStore } from '@/stores'
 import { useKBDocuments } from '@/hooks/useKBDocuments'
 import { apiFetch } from '@/lib/api'
 import { KBSidenav } from '@/components/kb/KBSidenav'
@@ -129,7 +128,6 @@ type Props = {
 export function KBDetail({ kbId, kbName }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const token = useUserStore((s) => s.accessToken)
   const { documents, setDocuments, loading, refetchDocuments } = useKBDocuments(kbId)
 
   const wikiDocs = React.useMemo(
@@ -227,7 +225,7 @@ export function KBDetail({ kbId, kbName }: Props) {
   }, [selectionHydrated, activeSourceDocId, wikiActivePath, hasWiki, wikiTree, updateUrl])
 
   React.useEffect(() => {
-    if (!token || !activeWikiDoc) {
+    if (!activeWikiDoc) {
       setPageContent('')
       setPageTitle('')
       return
@@ -236,11 +234,11 @@ export function KBDetail({ kbId, kbName }: Props) {
     setPageLoading(true)
     setPageTitle(activeWikiDoc.title || activeWikiDoc.filename.replace(/\.(md|txt)$/, ''))
 
-    apiFetch<{ content: string }>(`/api/v1/documents/${activeWikiDoc.id}/content`, token)
+    apiFetch<{ content: string }>(`/api/v1/documents/${activeWikiDoc.id}/content`)
       .then((response) => setPageContent(response.content || ''))
       .catch(() => setPageContent('Failed to load this wiki page.'))
       .finally(() => setPageLoading(false))
-  }, [activeWikiDoc, token])
+  }, [activeWikiDoc])
 
   const handleWikiSelect = React.useCallback((path: string) => {
     setWikiActivePath(path)
@@ -318,21 +316,9 @@ export function KBDetail({ kbId, kbName }: Props) {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [selectedIds.size, clearSelection])
 
-  const getToken = React.useCallback(() => {
-    const currentToken = useUserStore.getState().accessToken
-    if (!currentToken) {
-      toast.error('Missing access token')
-      return null
-    }
-    return currentToken
-  }, [])
-
   const handleCreateNote = async () => {
-    const currentToken = getToken()
-    if (!currentToken) return
-
     try {
-      const doc = await apiFetch<DocumentListItem>(`/api/v1/knowledge-bases/${kbId}/documents/note`, currentToken, {
+      const doc = await apiFetch<DocumentListItem>(`/api/v1/knowledge-bases/${kbId}/documents/note`, {
         method: 'POST',
         body: JSON.stringify({ filename: 'Untitled.md', path: '/', content: '' }),
       })
@@ -344,9 +330,7 @@ export function KBDetail({ kbId, kbName }: Props) {
   }
 
   const handleCreateFolder = (folderName: string) => {
-    const currentToken = getToken()
-    if (!currentToken) return
-    apiFetch<DocumentListItem>(`/api/v1/knowledge-bases/${kbId}/documents/note`, currentToken, {
+    apiFetch<DocumentListItem>(`/api/v1/knowledge-bases/${kbId}/documents/note`, {
       method: 'POST',
       body: JSON.stringify({ filename: 'Untitled.md', path: `/${folderName}/`, content: '' }),
     })
@@ -358,10 +342,8 @@ export function KBDetail({ kbId, kbName }: Props) {
   }
 
   const handleMoveDocument = async (docId: string, targetPath: string) => {
-    const currentToken = getToken()
-    if (!currentToken) return
     try {
-      await apiFetch(`/api/v1/documents/${docId}`, currentToken, {
+      await apiFetch(`/api/v1/documents/${docId}`, {
         method: 'PATCH',
         body: JSON.stringify({ path: targetPath }),
       })
@@ -372,10 +354,8 @@ export function KBDetail({ kbId, kbName }: Props) {
   }
 
   const handleDeleteDocument = async (docId: string) => {
-    const currentToken = getToken()
-    if (!currentToken) return
     try {
-      await apiFetch(`/api/v1/documents/${docId}`, currentToken, { method: 'DELETE' })
+      await apiFetch(`/api/v1/documents/${docId}`, { method: 'DELETE' })
       setDocuments((prev) => prev.filter((doc) => doc.id !== docId))
       if (activeSourceDocId === docId) {
         setActiveSourceDocId(null)
@@ -387,10 +367,8 @@ export function KBDetail({ kbId, kbName }: Props) {
   }
 
   const handleRenameDocument = async (docId: string, newTitle: string) => {
-    const currentToken = getToken()
-    if (!currentToken) return
     try {
-      const updated = await apiFetch<DocumentListItem>(`/api/v1/documents/${docId}`, currentToken, {
+      const updated = await apiFetch<DocumentListItem>(`/api/v1/documents/${docId}`, {
         method: 'PATCH',
         body: JSON.stringify({ title: newTitle }),
       })
@@ -401,12 +379,11 @@ export function KBDetail({ kbId, kbName }: Props) {
   }
 
   const handleDeleteSelected = async () => {
-    const currentToken = getToken()
-    if (!currentToken || selectedIds.size === 0) return
+    if (selectedIds.size === 0) return
 
     const ids = Array.from(selectedIds)
     const results = await Promise.allSettled(
-      ids.map((id) => apiFetch(`/api/v1/documents/${id}`, currentToken, { method: 'DELETE' })),
+      ids.map((id) => apiFetch(`/api/v1/documents/${id}`, { method: 'DELETE' })),
     )
     const succeeded = ids.filter((_, index) => results[index].status === 'fulfilled')
 
@@ -424,9 +401,6 @@ export function KBDetail({ kbId, kbName }: Props) {
   }
 
   const uploadFiles = React.useCallback(async (files: File[]) => {
-    const currentToken = getToken()
-    if (!currentToken) return
-
     const uploaded: DocumentListItem[] = []
     for (const file of files) {
       if (!/\.(md|txt)$/i.test(file.name)) {
@@ -436,7 +410,7 @@ export function KBDetail({ kbId, kbName }: Props) {
 
       try {
         const content = await file.text()
-        const doc = await apiFetch<DocumentListItem>(`/api/v1/knowledge-bases/${kbId}/documents/note`, currentToken, {
+        const doc = await apiFetch<DocumentListItem>(`/api/v1/knowledge-bases/${kbId}/documents/note`, {
           method: 'POST',
           body: JSON.stringify({
             filename: file.name,
@@ -456,7 +430,7 @@ export function KBDetail({ kbId, kbName }: Props) {
       toast.success(`${uploaded.length} file(s) uploaded`)
       void refetchDocuments()
     }
-  }, [getToken, kbId, refetchDocuments, setDocuments])
+  }, [kbId, refetchDocuments, setDocuments])
 
   const handleUploadClick = React.useCallback(() => {
     const input = document.createElement('input')

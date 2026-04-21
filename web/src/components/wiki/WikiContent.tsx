@@ -10,7 +10,6 @@ import { FileText } from 'lucide-react'
 import { loadMermaid } from '@/lib/mermaid-loader'
 import { cn } from '@/lib/utils'
 import { apiFetch } from '@/lib/api'
-import { useUserStore } from '@/stores'
 import type { DocumentListItem } from '@/lib/types'
 
 export interface TocItem {
@@ -239,13 +238,12 @@ function WikiImage({
   documents?: DocumentListItem[]
   wikiActivePath?: string
 }) {
-  const token = useUserStore((s) => s.accessToken)
   const [svgContent, setSvgContent] = React.useState<string | null>(null)
   const [imageUrl, setImageUrl] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
 
   React.useEffect(() => {
-    if (!src || !documents || !token) return
+    if (!src || !documents) return
     // Only resolve relative paths (not http:// or data: URIs)
     if (src.startsWith('http') || src.startsWith('data:')) return
 
@@ -265,7 +263,7 @@ function WikiImage({
 
     if (isSvg || isTextAsset) {
       // Text-based assets stored in the content column — fetch via API
-      apiFetch<{ content: string }>(`/api/v1/documents/${doc.id}/content`, token)
+      apiFetch<{ content: string }>(`/api/v1/documents/${doc.id}/content`)
         .then((res) => {
           if (isSvg && res.content) {
             setSvgContent(res.content)
@@ -286,7 +284,7 @@ function WikiImage({
     } else {
       setLoading(false)
     }
-  }, [src, documents, token, wikiActivePath])
+  }, [src, documents, wikiActivePath])
 
   // Inline SVG rendering — encode as data URI to avoid React DOM warnings for SVG elements like <text>
   if (svgContent) {

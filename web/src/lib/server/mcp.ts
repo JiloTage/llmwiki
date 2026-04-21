@@ -5,7 +5,6 @@ import {
   deleteAction,
   guideAction,
   readAction,
-  requireAccessToken,
   searchAction,
   writeAction,
 } from "@/lib/server/llmwiki";
@@ -330,7 +329,6 @@ function parseMethod(request: JsonRpcRequest) {
 
 export async function handleMcpPost(request: Request) {
   validateOrigin(request);
-  await requireAccessToken(request);
 
   let body: unknown;
   try {
@@ -473,7 +471,6 @@ export async function handleMcpPost(request: Request) {
 
 export async function handleMcpGet(request: Request) {
   validateOrigin(request);
-  await requireAccessToken(request);
 
   const stream = new ReadableStream({
     start(controller) {
@@ -494,6 +491,5 @@ export async function handleMcpGet(request: Request) {
 
 export async function handleMcpDelete(request: Request) {
   validateOrigin(request);
-  await requireAccessToken(request);
   return new Response(null, { status: 204 });
 }

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import {
   createNote,
   handleApiError,
-  requireAccessToken,
 } from "@/lib/server/llmwiki";
 
 export async function POST(
@@ -10,7 +9,6 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireAccessToken(request);
     const body = (await request.json()) as {
       filename?: string;
       path?: string;

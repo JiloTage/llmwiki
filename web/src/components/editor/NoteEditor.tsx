@@ -14,7 +14,6 @@ import {
   migrateProperties,
 } from './PropertyEditors'
 import { cn, sanitizeTitle } from '@/lib/utils'
-import { useUserStore } from '@/stores'
 import type { PropertyMap, PropertyType, TypedProperty } from '@/lib/types'
 
 const AUTOSAVE_DELAY = 1500
@@ -54,10 +53,6 @@ function stripFrontmatter(content: string): { body: string; frontmatter: string;
     frontmatter: match[0],
     meta,
   }
-}
-
-async function getAccessToken() {
-  return useUserStore.getState().accessToken
 }
 
 export function NoteEditor({
@@ -114,16 +109,9 @@ export function NoteEditor({
     metaDirtyRef.current = false
     setSaveStatus('saving')
 
-    const token = await getAccessToken()
-    if (!token) {
-      dirtyRef.current = true
-      setSaveStatus('idle')
-      return
-    }
-
     try {
       const requests: Promise<unknown>[] = [
-        apiFetch(`/api/v1/documents/${documentId}/content`, token, {
+        apiFetch(`/api/v1/documents/${documentId}/content`, {
           method: 'PUT',
           body: JSON.stringify({
             content: `${frontmatterRef.current}${latestContentRef.current}`,
@@ -134,7 +122,7 @@ export function NoteEditor({
       if (shouldPatchMeta) {
         const hasProperties = Object.keys(latestPropertiesRef.current).length > 0
         requests.push(
-          apiFetch(`/api/v1/documents/${documentId}`, token, {
+          apiFetch(`/api/v1/documents/${documentId}`, {
             method: 'PATCH',
             body: JSON.stringify({
               title: latestTitleRef.current || null,
@@ -166,14 +154,10 @@ export function NoteEditor({
     let cancelled = false
 
     const load = async () => {
-      const token = await getAccessToken()
-      if (!token || cancelled) return
+      if (cancelled) return
 
       try {
-        const response = await apiFetch<{ id: string; content: string }>(
-          `/api/v1/documents/${documentId}/content`,
-          token,
-        )
+        const response = await apiFetch<{ id: string; content: string }>(`/api/v1/documents/${documentId}/content`)
 
         if (cancelled) return
 

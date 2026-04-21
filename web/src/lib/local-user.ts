@@ -3,6 +3,3 @@ export const LOCAL_USER_ID =
 
 export const LOCAL_USER_EMAIL =
   process.env.NEXT_PUBLIC_LOCAL_USER_EMAIL || 'local@llmwiki.local'
-
-export const LOCAL_ACCESS_TOKEN =
-  process.env.NEXT_PUBLIC_LOCAL_ACCESS_TOKEN || 'local-dev-session'

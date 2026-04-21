@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import {
   deleteDocument,
   handleApiError,
-  requireAccessToken,
   updateDocument,
 } from "@/lib/server/llmwiki";
 
@@ -11,7 +10,6 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireAccessToken(request);
     const body = (await request.json()) as {
       filename?: string | null;
       path?: string | null;
@@ -33,7 +31,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireAccessToken(request);
     const { id } = await params;
     await deleteDocument(id);
     return new NextResponse(null, { status: 204 });
