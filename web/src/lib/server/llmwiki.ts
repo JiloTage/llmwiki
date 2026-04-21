@@ -81,6 +81,8 @@ const APP_URL =
   process.env.APP_URL ||
   "http://localhost:3000";
 
+export const MCP_INSTRUCTIONS = `You are connected to an LLM Wiki workspace. Call \`guide\` first to discover available knowledge bases and learn the workflow rules before using other tools. Use \`search\` and \`read\` to inspect existing content before editing. If no existing knowledge base fits the user's request, call \`create_wiki\` before continuing. Treat raw sources under \`/\` as read-only source material and pages under \`/wiki/\` as the compiled wiki that you maintain with \`write\` and, only when explicitly needed, \`delete\`. Write articles in Japanese. Prefer a concise, encyclopedia-like style similar to Wikipedia, with clear subjects and natural sentence structure. Keep each sentence reasonably short. Articles must still be substantial enough to read as full articles; prioritize completeness and adequate depth over compactness. Add markdown hyperlinks in article text where helpful so readers can jump to related articles from the body text.`;
+
 const GUIDE_TEXT = `# LLM Wiki - How It Works
 
 You are connected to an **LLM Wiki** - a personal knowledge workspace where you compile and maintain a structured wiki from raw source documents.

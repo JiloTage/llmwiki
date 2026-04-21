@@ -32,7 +32,7 @@ export default defineConfig({
       NEXT_PUBLIC_LOCAL_USER_ID: '00000000-0000-4000-8000-000000000001',
       NEXT_PUBLIC_LOCAL_USER_EMAIL: 'local@llmwiki.local',
       NEXT_PUBLIC_LOCAL_ACCESS_TOKEN: 'local-dev-session',
-      NEXT_PUBLIC_MCP_URL: 'http://127.0.0.1:8080/mcp',
+      NEXT_PUBLIC_MCP_URL: 'http://127.0.0.1:3000/mcp',
     },
   },
   projects: [

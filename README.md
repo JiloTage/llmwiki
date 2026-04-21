@@ -5,7 +5,7 @@
 主な実装:
 
 - `web/`
-  UI と API Route Handlers をまとめた本体です。`/api/v1/*` もここにあります。
+  UI と API Route Handlers をまとめた本体です。`/api/v1/*` と `/mcp` もここにあります。
 - `web/migrations/`
   D1 スキーマです。
 - `web/e2e/`
@@ -22,7 +22,18 @@
 - 認証は共有 Bearer token のみです。
 - 単一ローカルユーザー前提です。
 - 本番 API は `web/src/app/api/v1/*` の Route Handlers が提供します。
+- MCP endpoint は `web/src/app/mcp/route.ts` が提供します。
 - データストアは Cloudflare D1 です。
+
+## 公開 surface
+
+- GPT Actions:
+  `POST /api/v1/actions/guide`, `create-wiki`, `search`, `read`, `write`, `delete`
+- MCP:
+  `POST /mcp` で `initialize`, `ping`, `tools/list`, `tools/call` を受けます。
+  `guide`, `create_wiki`, `search`, `read`, `write`, `delete` を MCP tool として公開します。
+
+GPT Actions と MCP はどちらも同じ server 実装を呼び、実体は `web/src/lib/server/llmwiki.ts` に集約されています。
 
 ## ローカル起動
 
@@ -36,7 +47,7 @@ NEXT_PUBLIC_LOCAL_ACCESS_TOKEN=local-dev-session
 NEXT_PUBLIC_LOCAL_USER_ID=00000000-0000-4000-8000-000000000001
 NEXT_PUBLIC_LOCAL_USER_EMAIL=local@llmwiki.local
 # Optional: settings page MCP snippet
-NEXT_PUBLIC_MCP_URL=http://localhost:8080/mcp
+NEXT_PUBLIC_MCP_URL=http://localhost:3000/mcp
 ```
 
 起動:
@@ -46,6 +57,17 @@ cd web
 npm.cmd install
 npm.cmd run dev
 ```
+
+MCP を手動で叩く最小例:
+
+```bash
+curl -X POST http://localhost:3000/mcp \
+  -H 'Authorization: Bearer local-dev-session' \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"example","version":"1.0.0"}}}'
+```
+
+Settings 画面の MCP snippet は `NEXT_PUBLIC_MCP_URL` と `NEXT_PUBLIC_LOCAL_ACCESS_TOKEN` から組み立てます。未指定なら `http://localhost:3000/mcp` を使います。
 
 ## 確認コマンド
 

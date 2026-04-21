@@ -129,6 +129,70 @@ test('creates an additional wiki from the list page and opens settings', async (
   await expect(page.getByText('MCP URL:')).toBeVisible()
 })
 
+test('serves MCP initialize and tools list', async ({ request }) => {
+  const initialize = await request.post('/mcp', {
+    headers: {
+      ...AUTH_HEADERS,
+      'Content-Type': 'application/json',
+    },
+    data: {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2025-11-25',
+        capabilities: {},
+        clientInfo: {
+          name: 'playwright',
+          version: '1.0.0',
+        },
+      },
+    },
+  })
+  expect(initialize.ok()).toBeTruthy()
+  const initializeJson = (await initialize.json()) as {
+    result: {
+      protocolVersion: string
+      capabilities: { tools: { listChanged: boolean } }
+      serverInfo: { name: string; version: string }
+      instructions: string
+    }
+  }
+  expect(initializeJson.result.protocolVersion).toBe('2025-11-25')
+  expect(initializeJson.result.serverInfo.name).toBe('llmwiki')
+  expect(initializeJson.result.capabilities.tools.listChanged).toBe(false)
+  expect(initializeJson.result.instructions).toContain('Call `guide` first')
+  expect(initializeJson.result.instructions).toContain('Write articles in Japanese')
+
+  const toolList = await request.post('/mcp', {
+    headers: {
+      ...AUTH_HEADERS,
+      'Content-Type': 'application/json',
+      'MCP-Protocol-Version': '2025-11-25',
+    },
+    data: {
+      jsonrpc: '2.0',
+      id: 2,
+      method: 'tools/list',
+      params: {},
+    },
+  })
+  expect(toolList.ok()).toBeTruthy()
+  const toolListJson = (await toolList.json()) as {
+    result: {
+      tools: Array<{ name: string }>
+    }
+  }
+  expect(toolListJson.result.tools.map((tool) => tool.name)).toEqual([
+    'guide',
+    'create_wiki',
+    'search',
+    'read',
+    'write',
+    'delete',
+  ])
+})
+
 test('renders mermaid code fences inside wiki pages', async ({ page, request }) => {
   const name = uniqueName('Mermaid Wiki')
   const slug = slugify(name)
