@@ -76,7 +76,7 @@ const APP_URL =
   process.env.APP_URL ||
   "http://localhost:3000";
 
-export const MCP_INSTRUCTIONS = `You are connected to an LLM Wiki workspace. Call \`guide\` first to discover available knowledge bases and learn the workflow rules before using other tools. Use \`search\` and \`read\` to inspect existing content before editing. If no existing knowledge base fits the user's request, call \`create_wiki\` before continuing. Treat raw sources under \`/\` as read-only source material and pages under \`/wiki/\` as the compiled wiki that you maintain with \`write\` and, only when explicitly needed, \`delete\`. Write articles in Japanese. Prefer a concise, encyclopedia-like style similar to Wikipedia, with clear subjects and natural sentence structure. Keep each sentence reasonably short. Articles must still be substantial enough to read as full articles; prioritize completeness and adequate depth over compactness. Add markdown hyperlinks in article text where helpful so readers can jump to related articles from the body text.`;
+export const MCP_INSTRUCTIONS = `You are connected to an LLM Wiki workspace. Call \`guide\` first to discover available knowledge bases and learn the workflow rules before using other tools. Use \`search\` and \`read\` to inspect existing content before editing. If no existing knowledge base fits the user's request, call \`create_wiki\` before continuing. Treat raw sources under \`/\` as read-only source material and pages under \`/wiki/\` as the compiled wiki that you maintain with \`write\` and, only when explicitly needed, \`delete\`. Write articles in Japanese. Prefer a concise, encyclopedia-like style similar to Wikipedia, with clear subjects and natural sentence structure. Keep each sentence reasonably short. Articles must still be substantial enough to read as full articles; prioritize completeness and adequate depth over compactness. When a concept first appears in an article, briefly explain it in context. If a technical term or complex concept needs more than a brief explanation, create or expand a dedicated page for it and link to that page from the article. Add markdown hyperlinks in article text where helpful so readers can jump to related articles from the body text.`;
 
 const GUIDE_TEXT = `# LLM Wiki - How It Works
 
@@ -86,7 +86,7 @@ You are connected to an **LLM Wiki** - a personal knowledge workspace where you 
 
 1. **Raw Sources** (path: \`/\`) - uploaded documents (PDFs, notes, images, spreadsheets). Source of truth. Read-only.
 2. **Compiled Wiki** (path: \`/wiki/\`) - markdown pages YOU create and maintain. You own this layer.
-3. **Tools** - \`guide\`, \`create_wiki\`, \`search\`, \`read\`, \`write\`, \`delete\` - your interface to both layers.
+3. **Tools** - \`guide\`, \`create_wiki\`, \`search\`, \`read\`, \`write\`, \`autolink\`, \`delete\` - your interface to both layers.
 
 If the user needs a new wiki and no suitable knowledge base exists yet, create it first with \`create_wiki\`.
 
@@ -207,6 +207,14 @@ Rules:
 ### Cross-References
 Link between wiki pages using standard markdown links to other wiki paths.
 
+### Internal Links and First Mentions - REQUIRED
+
+- When an important concept, entity, method, technology, organization, person, paper, or dataset first appears in an article, briefly explain it in context.
+- If that topic already has a dedicated wiki page, link the first natural mention in the article body using a standard markdown link.
+- If a technical term or complex concept needs more than a short in-context explanation, create or expand a dedicated page for it and link to that page from the article body.
+- Prefer links embedded in natural prose. Do not push important links into a trailing dump of related pages.
+- Use \`autolink\` when you want to sweep existing wiki pages and add missing internal links to already-existing pages.
+
 ## Core Workflows
 
 ### Start a New Wiki
@@ -233,6 +241,9 @@ Link between wiki pages using standard markdown links to other wiki paths.
 
 ### Maintain the Wiki (Lint)
 Check for: contradictions, orphan pages, missing cross-references, stale claims, concepts mentioned but lacking their own page. Append a lint entry to \`/wiki/log.md\`.
+
+### Sweep Internal Links
+Run \`autolink(knowledge_base="...")\` to scan existing wiki pages and add missing internal links where a page already exists for the referenced topic.
 
 ## Available Knowledge Bases
 `;
@@ -323,6 +334,15 @@ function relativeWikiPath(path: string, filename: string) {
   return `${path}${filename}`.replace(/^\/wiki\/?/, "");
 }
 
+function toWikiHref(path: string, filename: string) {
+  const relativePath = relativeWikiPath(path, filename)
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return `/wiki/${relativePath}`;
+}
+
 function deepLink(kbSlug: string, doc: { id: number; path: string; filename: string }) {
   if (doc.path.startsWith("/wiki/")) {
     return `${APP_URL}/wikis/${kbSlug}?page=${encodeURIComponent(relativeWikiPath(doc.path, doc.filename))}`;
@@ -332,6 +352,139 @@ function deepLink(kbSlug: string, doc: { id: number; path: string; filename: str
 
 function extractTitleFromCreate(title: string) {
   return title.replace(/\.(md|txt|svg|csv|json|xml|html)$/i, "").trim() || title;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function isAsciiWordChar(char: string | undefined) {
+  return Boolean(char && /[A-Za-z0-9]/.test(char));
+}
+
+function isProtectedWikiPath(path: string, filename: string) {
+  return PROTECTED_FILES.has(`${path}${filename}`);
+}
+
+function buildAutolinkCandidates(documents: Array<ReturnType<typeof toDocument>>) {
+  const candidates = new Map<string, { href: string; targetPath: string }>();
+  const docs = documents;
+  for (const doc of docs) {
+    if (!doc.path.startsWith("/wiki/") || doc.file_type !== "md" || isProtectedWikiPath(doc.path, doc.filename)) {
+      continue;
+    }
+
+    const href = toWikiHref(doc.path, doc.filename);
+    const targetPath = `${doc.path}${doc.filename}`;
+    const names = new Set<string>();
+    const title = doc.title?.trim();
+    const filenameStem = extractTitleFromCreate(doc.filename).trim();
+    if (title) names.add(title);
+    if (filenameStem) names.add(filenameStem);
+
+    for (const name of names) {
+      const normalized = name.trim();
+      if (normalized.length < 2) continue;
+      candidates.set(normalized, { href, targetPath });
+    }
+  }
+
+  return [...candidates.entries()]
+    .sort((a, b) => b[0].length - a[0].length)
+    .map(([label, value]) => ({ label, ...value }));
+}
+
+function findLinkableIndex(text: string, term: string) {
+  if (!term) return -1;
+
+  const needsAsciiBoundary = /[A-Za-z0-9]/.test(term);
+  let start = 0;
+  while (start < text.length) {
+    const index = text.indexOf(term, start);
+    if (index === -1) return -1;
+    if (!needsAsciiBoundary) return index;
+
+    const prev = index > 0 ? text[index - 1] : undefined;
+    const next = index + term.length < text.length ? text[index + term.length] : undefined;
+    if (!isAsciiWordChar(prev) && !isAsciiWordChar(next)) {
+      return index;
+    }
+    start = index + term.length;
+  }
+
+  return -1;
+}
+
+function autolinkMarkdown(
+  content: string,
+  currentPath: string,
+  candidates: Array<{ label: string; href: string; targetPath: string }>,
+) {
+  const linkedTargets = new Set<string>();
+  let linksAdded = 0;
+  let inFence = false;
+
+  const nextContent = content
+    .split("\n")
+    .map((line) => {
+      if (/^```/.test(line.trim())) {
+        inFence = !inFence;
+        return line;
+      }
+      if (inFence || /^#/.test(line) || /^\[\^[^\]]+\]:/.test(line.trim())) {
+        return line;
+      }
+
+      const placeholders: string[] = [];
+      let working = line.replace(/!\[[^\]]*]\([^)]+\)|\[[^\]]+]\([^)]+\)|`[^`]+`/g, (match) => {
+        const token = `@@PLACEHOLDER_${placeholders.length}@@`;
+        placeholders.push(match);
+        return token;
+      });
+
+      for (const candidate of candidates) {
+        if (candidate.targetPath === currentPath || linkedTargets.has(candidate.targetPath)) {
+          continue;
+        }
+        if (!working.includes(candidate.label)) {
+          continue;
+        }
+
+        const index = findLinkableIndex(working, candidate.label);
+        if (index === -1) {
+          continue;
+        }
+
+        const replacement = `[${candidate.label}](${candidate.href})`;
+        working =
+          `${working.slice(0, index)}${replacement}${working.slice(index + candidate.label.length)}`;
+        linkedTargets.add(candidate.targetPath);
+        linksAdded += 1;
+      }
+
+      return working.replace(/@@PLACEHOLDER_(\d+)@@/g, (_, rawIndex: string) => {
+        const placeholder = placeholders[Number(rawIndex)];
+        return placeholder ?? "";
+      });
+    })
+    .join("\n");
+
+  return { content: nextContent, linksAdded };
+}
+
+function buildAutolinkLogEntry(updatedPaths: string[], linksAdded: number) {
+  const today = new Date().toISOString().slice(0, 10);
+  const lines = [
+    `## [${today}] lint | Autolink Sweep`,
+    `- Scanned wiki pages for missing internal links`,
+    `- Added ${linksAdded} internal link${linksAdded === 1 ? "" : "s"} across ${updatedPaths.length} page${updatedPaths.length === 1 ? "" : "s"}`,
+  ];
+
+  for (const path of updatedPaths.slice(0, 10)) {
+    lines.push(`- Updated page: [${path.replace(/^\/wiki\//, "")}](${path})`);
+  }
+
+  return `${lines.join("\n")}\n`;
 }
 
 function toKnowledgeBase(row: KnowledgeBaseRow) {
@@ -1687,6 +1840,74 @@ export async function writeAction(input: {
       path: document.path,
       filename: document.filename,
     }),
+  };
+}
+
+export async function autolinkAction(input: {
+  knowledge_base: string;
+}) {
+  const db = await getDb();
+  const kb = await getKnowledgeBaseRowBySlug(db, input.knowledge_base);
+  const documents = (await all<DocumentRow>(
+    db,
+    `SELECT
+      id,
+      knowledge_base_id,
+      filename,
+      title,
+      path,
+      file_type,
+      content,
+      tags_json,
+      metadata_json,
+      date,
+      version,
+      sort_order,
+      archived,
+      created_at,
+      updated_at
+    FROM documents
+    WHERE knowledge_base_id = ?
+      AND archived = 0
+    ORDER BY path, sort_order, filename`,
+    [kb.id],
+  )).map(toDocument);
+  const wikiDocs = documents.filter((doc) =>
+    doc.path.startsWith("/wiki/") &&
+    doc.file_type === "md" &&
+    !doc.archived &&
+    `${doc.path}${doc.filename}` !== "/wiki/log.md"
+  );
+  const candidates = buildAutolinkCandidates(wikiDocs);
+
+  const updatedPaths: string[] = [];
+  let linksAdded = 0;
+
+  for (const doc of wikiDocs) {
+    const currentPath = `${doc.path}${doc.filename}`;
+    const { content, linksAdded: added } = autolinkMarkdown(doc.content ?? "", currentPath, candidates);
+    if (!added || content === (doc.content ?? "")) {
+      continue;
+    }
+
+    await updateDocumentContent(doc.id, content);
+    updatedPaths.push(currentPath);
+    linksAdded += added;
+  }
+
+  const logEntry = buildAutolinkLogEntry(updatedPaths, linksAdded);
+  const logDocument = await getLiveDocumentRow(db, kb.id, "/wiki/log.md");
+  if (logDocument) {
+    const nextLogContent = `${logDocument.content ?? ""}${(logDocument.content ?? "").trim() ? "\n\n" : ""}${logEntry}`;
+    await updateDocumentContent(String(logDocument.id), nextLogContent);
+  }
+
+  return {
+    knowledge_base: kb.slug,
+    updated_paths: updatedPaths,
+    updated_count: updatedPaths.length,
+    links_added: linksAdded,
+    log_updated: Boolean(logDocument),
   };
 }
 

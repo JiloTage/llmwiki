@@ -1,4 +1,5 @@
 import {
+  autolinkAction,
   ApiError,
   MCP_INSTRUCTIONS,
   createWikiAction,
@@ -184,6 +185,26 @@ const tools: ToolDefinition[] = [
           date_str?: string;
           old_text?: string;
           new_text?: string;
+        },
+      );
+    },
+  },
+  {
+    name: "autolink",
+    description:
+      "Scan existing wiki pages and add missing internal links to already-existing wiki pages.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        knowledge_base: { type: "string" },
+      },
+      required: ["knowledge_base"],
+    },
+    call(args) {
+      return autolinkAction(
+        asObject(args) as {
+          knowledge_base: string;
         },
       );
     },

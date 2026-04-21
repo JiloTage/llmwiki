@@ -309,6 +309,29 @@ export function buildOpenApiDocument(origin: string) {
           },
           required: ["command", "knowledge_base", "path", "filename", "title", "version", "message", "deep_link"],
         },
+        AutolinkRequest: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            knowledge_base: { type: "string" },
+          },
+          required: ["knowledge_base"],
+        },
+        AutolinkResponse: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            knowledge_base: { type: "string" },
+            updated_paths: {
+              type: "array",
+              items: { type: "string" },
+            },
+            updated_count: { type: "integer" },
+            links_added: { type: "integer" },
+            log_updated: { type: "boolean" },
+          },
+          required: ["knowledge_base", "updated_paths", "updated_count", "links_added", "log_updated"],
+        },
         DeleteRequest: {
           type: "object",
           additionalProperties: false,
@@ -374,6 +397,14 @@ export function buildOpenApiDocument(origin: string) {
           "Create wiki pages or edit existing documents with append or exact string replacement.",
           "#/components/schemas/WriteResponse",
           "#/components/schemas/WriteRequest",
+        ),
+      },
+      "/api/v1/actions/autolink": {
+        post: actionOperation(
+          "autolink",
+          "Scan wiki pages in the selected knowledge base and add missing internal links to already-existing pages.",
+          "#/components/schemas/AutolinkResponse",
+          "#/components/schemas/AutolinkRequest",
         ),
       },
       "/api/v1/actions/delete": {

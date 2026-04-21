@@ -61,6 +61,36 @@ async function createDocument(
   return response.json()
 }
 
+async function readAction(
+  request: APIRequestContext,
+  data: { knowledge_base: string; path: string },
+) {
+  const response = await request.post('/api/v1/actions/read', {
+    headers: {
+      ...AUTH_HEADERS,
+      'Content-Type': 'application/json',
+    },
+    data,
+  })
+  expect(response.ok()).toBeTruthy()
+  return response.json()
+}
+
+async function autolinkAction(
+  request: APIRequestContext,
+  data: { knowledge_base: string },
+) {
+  const response = await request.post('/api/v1/actions/autolink', {
+    headers: {
+      ...AUTH_HEADERS,
+      'Content-Type': 'application/json',
+    },
+    data,
+  })
+  expect(response.ok()).toBeTruthy()
+  return response.json()
+}
+
 async function createWikiFromUi(page: Page, name: string) {
   const quickCreate = page.getByTestId('quick-create-wiki')
 
@@ -189,8 +219,46 @@ test('serves MCP initialize and tools list', async ({ request }) => {
     'search',
     'read',
     'write',
+    'autolink',
     'delete',
   ])
+})
+
+test('autolink adds missing internal links across existing wiki pages', async ({ request }) => {
+  const name = uniqueName('Autolink Wiki')
+  const knowledgeBase = await createKnowledgeBase(request, name)
+
+  await createDocument(request, knowledgeBase.id, {
+    filename: 'Large Language Models.md',
+    title: 'Large Language Models',
+    path: '/wiki/concepts/',
+    content: '# Large Language Models\n\nOverview page.\n',
+  })
+
+  await createDocument(request, knowledgeBase.id, {
+    filename: 'Transformers.md',
+    title: 'Transformers',
+    path: '/wiki/entities/',
+    content: '# Transformers\n\nTransformers are a major architecture used in Large Language Models.\n',
+  })
+
+  const autolink = await autolinkAction(request, { knowledge_base: knowledgeBase.slug }) as {
+    updated_count: number
+    links_added: number
+    updated_paths: string[]
+  }
+  expect(autolink.updated_count).toBeGreaterThan(0)
+  expect(autolink.links_added).toBeGreaterThan(0)
+  expect(autolink.updated_paths).toContain('/wiki/entities/Transformers.md')
+
+  const read = await readAction(request, {
+    knowledge_base: knowledgeBase.slug,
+    path: '/wiki/entities/Transformers.md',
+  }) as {
+    documents: Array<{ content: string }>
+  }
+
+  expect(read.documents[0].content).toContain('[Large Language Models](/wiki/concepts/Large%20Language%20Models.md)')
 })
 
 test('renders mermaid code fences inside wiki pages', async ({ page, request }) => {
