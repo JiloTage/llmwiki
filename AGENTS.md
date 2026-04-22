@@ -32,6 +32,16 @@
 - `.github/workflows/cloudflare-deploy.yml`
 - `.env.example`
 
+## 追加の現状メモ
+
+- D1 schema には `web/migrations/0002_document_related_articles.sql` が追加されています。
+- wiki 記事同士の関連記事は `document_related_articles` テーブルで相互管理します。
+- `/wiki/` 配下の Markdown 記事は、作成・更新時に内部リンクの自動メンテナンスが走る前提です。
+  - 明示的に `autolink` を呼ばなくても、不足している内部 Markdown リンクを補完する実装になっています。
+  - `autolink` は残っていますが、主用途は手動再同期と idempotent な sweep です。
+- 記事末尾の `Related articles` 表示は、本文中の内部リンクから同期された DB の関連記事データを使います。
+- `overview.md` と `log.md` は関連記事の自動管理対象外です。
+
 ## 変更方針
 
 - 必要最小限の差分で直してください。
