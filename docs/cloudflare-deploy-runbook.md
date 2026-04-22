@@ -105,8 +105,15 @@ GitHub Actions workflow は [cloudflare-deploy.yml](../.github/workflows/cloudfl
 
 ### 5.2 API
 
+Current production expectation:
+
+- `GET /api/v1/knowledge-bases` returns `200` without a token
+- the same endpoint also returns `200` with `Authorization: Bearer <LOCAL_ACCESS_TOKEN>`
+- use write operations to verify Bearer auth behavior
+
 ```bash
 curl https://YOUR_APP_URL/api/v1/knowledge-bases
+curl -H "Authorization: Bearer <LOCAL_ACCESS_TOKEN>" https://YOUR_APP_URL/api/v1/knowledge-bases
 ```
 
 - 200 が返る

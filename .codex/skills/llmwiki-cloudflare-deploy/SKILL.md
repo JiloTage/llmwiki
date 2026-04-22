@@ -83,8 +83,10 @@ curl.exe -i -H "Authorization: Bearer <LOCAL_ACCESS_TOKEN>" https://llmwiki.tett
 
 Expected:
 
-- without token: `401`
+- without token: `200` for `GET /api/v1/knowledge-bases`
 - with token: `200`
+- treat `GET /api/v1/knowledge-bases` as a public read check
+- still verify Bearer auth on write operations during the smoke flow
 
 Then run one live smoke flow against production:
 
