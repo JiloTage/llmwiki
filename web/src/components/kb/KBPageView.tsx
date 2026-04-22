@@ -20,6 +20,7 @@ type Props = {
   requestedPath: string
   currentDocument: DocumentListItem | null
   documentSummaries: DocumentSummary[]
+  relatedDocuments?: DocumentSummary[]
   initialDocumentContent?: string
   tocItems?: TocItem[]
   sourceCount?: number
@@ -32,6 +33,7 @@ export function KBPageView({
   requestedPath,
   currentDocument,
   documentSummaries,
+  relatedDocuments = [],
   initialDocumentContent,
   tocItems = [],
   sourceCount = 0,
@@ -123,7 +125,25 @@ export function KBPageView({
       sourceCount={sourceCount}
       onSourceClick={handleCitationSourceClick}
     >
-      {children}
+      <>
+        {children}
+        {relatedDocuments.length > 0 ? (
+          <section className="mt-12 border-t border-border pt-6">
+            <p className="wiki-heading mb-3 text-base text-foreground">Related articles</p>
+            <div className="flex flex-wrap gap-2">
+              {relatedDocuments.map((doc) => (
+                <Link
+                  key={doc.id}
+                  href={toWikiRoute(kbSlug, buildDocumentPath(doc.path, doc.filename))}
+                  className="border border-border bg-background px-3 py-1.5 text-sm text-accent-blue transition-colors hover:bg-muted hover:underline"
+                >
+                  {doc.title || doc.filename.replace(/\.(md|txt)$/i, '')}
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </>
     </RenderedWikiContent>
   )
 }

@@ -1,6 +1,12 @@
 import { KBPageView } from '@/components/kb/KBPageView'
 import { KnowledgeBaseStoreHydrator } from '@/components/kb/KnowledgeBaseStoreHydrator'
-import { listKnowledgeBases, listDocumentSummaries, getDocumentByPath, getDocumentContent } from '@/lib/server/llmwiki'
+import {
+  listKnowledgeBases,
+  listDocumentSummaries,
+  getDocumentByPath,
+  getDocumentContent,
+  listRelatedDocumentSummaries,
+} from '@/lib/server/llmwiki'
 import { renderWikiPage } from '@/lib/server/wiki-render'
 import type { DocumentSummary } from '@/lib/types'
 import { extractImageSources } from '@/lib/wiki'
@@ -72,6 +78,9 @@ export default async function FilePage({
   const documentSummaries = await listDocumentSummaries(kb.id)
   const currentDocument = await getDocumentByPath(kb.id, requestedPath)
   const initialDocumentContent = currentDocument?.content ?? undefined
+  const relatedDocuments = currentDocument?.path.startsWith('/wiki/')
+    ? await listRelatedDocumentSummaries(currentDocument.id)
+    : []
 
   const renderedWiki = currentDocument && currentDocument.path.startsWith('/wiki/') && initialDocumentContent !== undefined
     ? renderWikiPage({
@@ -94,6 +103,7 @@ export default async function FilePage({
         currentDocument={currentDocument}
         documentSummaries={documentSummaries}
         initialDocumentContent={initialDocumentContent}
+        relatedDocuments={relatedDocuments}
         tocItems={renderedWiki?.tocItems}
         sourceCount={renderedWiki?.sourceCount}
       >

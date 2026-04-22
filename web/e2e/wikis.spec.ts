@@ -261,6 +261,36 @@ test('autolink adds missing internal links across existing wiki pages', async ({
   expect(read.documents[0].content).toContain('[Large Language Models](/wiki/concepts/Large%20Language%20Models.md)')
 })
 
+test('renders reciprocal related articles for linked wiki pages', async ({ page, request }) => {
+  const name = uniqueName('Related Wiki')
+  const knowledgeBase = await createKnowledgeBase(request, name)
+  await waitForKnowledgeBase(request, knowledgeBase.slug)
+
+  await createDocument(request, knowledgeBase.id, {
+    filename: 'Large Language Models.md',
+    title: 'Large Language Models',
+    path: '/wiki/concepts/',
+    content: '# Large Language Models\n\nOverview page.\n',
+  })
+
+  await createDocument(request, knowledgeBase.id, {
+    filename: 'Transformers.md',
+    title: 'Transformers',
+    path: '/wiki/entities/',
+    content: '# Transformers\n\nSee [Large Language Models](/wiki/concepts/Large%20Language%20Models.md).\n',
+  })
+
+  await page.goto(`/wikis/${knowledgeBase.slug}/wiki/entities/Transformers.md`)
+  const transformersRelated = page.locator('section').filter({ hasText: 'Related articles' })
+  await expect(transformersRelated).toBeVisible()
+  await expect(transformersRelated.getByRole('link', { name: 'Large Language Models' })).toBeVisible()
+
+  await page.goto(`/wikis/${knowledgeBase.slug}/wiki/concepts/Large%20Language%20Models.md`)
+  const llmRelated = page.locator('section').filter({ hasText: 'Related articles' })
+  await expect(llmRelated).toBeVisible()
+  await expect(llmRelated.getByRole('link', { name: 'Transformers' })).toBeVisible()
+})
+
 test('renders mermaid code fences inside wiki pages', async ({ page, request }) => {
   const name = uniqueName('Mermaid Wiki')
   const slug = slugify(name)

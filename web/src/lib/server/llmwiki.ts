@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { resolveDocumentPath } from "@/lib/documents";
 import type { DocumentSummary } from "@/lib/types";
 
 type JsonValue =
@@ -69,6 +70,11 @@ type DocumentSummaryRow = {
 type ChunkRow = {
   content: string;
   header_breadcrumb: string;
+};
+
+type RelatedArticlePairRow = {
+  document_id_a: number;
+  document_id_b: number;
 };
 
 const APP_URL =
@@ -364,6 +370,73 @@ function isAsciiWordChar(char: string | undefined) {
 
 function isProtectedWikiPath(path: string, filename: string) {
   return PROTECTED_FILES.has(`${path}${filename}`);
+}
+
+function isRelatableWikiDocument(path: string, filename: string, fileType: string) {
+  return path.startsWith("/wiki/") &&
+    (fileType === "md" || fileType === "txt") &&
+    !isProtectedWikiPath(path, filename);
+}
+
+function safeDecodeUriComponent(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function decodeDocumentPath(path: string) {
+  return path
+    .split("/")
+    .map((segment) => safeDecodeUriComponent(segment))
+    .join("/") || "/";
+}
+
+function extractInternalWikiLinks(content: string, currentFullPath: string) {
+  const relatedPaths = new Set<string>();
+  let inFence = false;
+
+  for (const rawLine of content.split("\n")) {
+    const line = rawLine.trim();
+    if (/^```/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence || /^\[\^[^\]]+\]:/.test(line)) {
+      continue;
+    }
+
+    const working = rawLine.replace(/`[^`]+`/g, "");
+    const linkRegex = /!?\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+    let match: RegExpExecArray | null = null;
+    while ((match = linkRegex.exec(working)) !== null) {
+      if (match[0].startsWith("![")) continue;
+
+      const href = match[1]?.trim();
+      if (!href || href.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(href)) {
+        continue;
+      }
+
+      const withoutHash = href.split("#")[0]?.split("?")[0] ?? "";
+      if (!withoutHash) continue;
+
+      const resolved = decodeDocumentPath(resolveDocumentPath(currentFullPath, withoutHash));
+      if (!resolved.startsWith("/wiki/")) continue;
+      relatedPaths.add(resolved);
+    }
+  }
+
+  return [...relatedPaths];
+}
+
+function canonicalRelatedArticlePair(left: number, right: number): [number, number] {
+  return left < right ? [left, right] : [right, left];
+}
+
+function relatedArticlePairKey(left: number, right: number) {
+  const [a, b] = canonicalRelatedArticlePair(left, right);
+  return `${a}:${b}`;
 }
 
 function buildAutolinkCandidates(documents: Array<ReturnType<typeof toDocument>>) {
@@ -1019,6 +1092,121 @@ function invalidateDocumentContent(documentId: number) {
   revalidateTag(docContentTag(documentId), "max");
 }
 
+function invalidateDocumentContents(documentIds: Iterable<number>) {
+  for (const documentId of new Set(documentIds)) {
+    invalidateDocumentContent(documentId);
+  }
+}
+
+async function listRelatedArticlePairsForDocument(db: D1DatabaseLike, documentId: number) {
+  return all<RelatedArticlePairRow>(
+    db,
+    `SELECT document_id_a, document_id_b
+     FROM document_related_articles
+     WHERE document_id_a = ?
+        OR document_id_b = ?`,
+    [documentId, documentId],
+  );
+}
+
+async function clearRelatedArticlesForDocument(db: D1DatabaseLike, documentId: number) {
+  const existingPairs = await listRelatedArticlePairsForDocument(db, documentId);
+  if (!existingPairs.length) {
+    return [];
+  }
+
+  await run(
+    db,
+    "DELETE FROM document_related_articles WHERE document_id_a = ? OR document_id_b = ?",
+    [documentId, documentId],
+  );
+
+  return existingPairs.map((pair) =>
+    pair.document_id_a === documentId ? pair.document_id_b : pair.document_id_a
+  );
+}
+
+async function syncRelatedArticlesForDocument(
+  db: D1DatabaseLike,
+  document: Pick<DocumentRow, "id" | "knowledge_base_id" | "filename" | "path" | "file_type" | "archived">,
+  content: string,
+) {
+  if (!isRelatableWikiDocument(document.path, document.filename, document.file_type) || document.archived) {
+    const clearedIds = await clearRelatedArticlesForDocument(db, document.id);
+    return [document.id, ...clearedIds];
+  }
+
+  const wikiDocuments = await all<Pick<DocumentRow, "id" | "filename" | "path" | "file_type" | "archived">>(
+    db,
+    `SELECT id, filename, path, file_type, archived
+     FROM documents
+     WHERE knowledge_base_id = ?
+       AND archived = 0
+       AND path LIKE '/wiki/%'`,
+    [document.knowledge_base_id],
+  );
+
+  const documentsByPath = new Map<string, number>();
+  for (const row of wikiDocuments) {
+    if (!isRelatableWikiDocument(row.path, row.filename, row.file_type)) {
+      continue;
+    }
+    documentsByPath.set(`${row.path}${row.filename}`, Number(row.id));
+  }
+
+  const currentFullPath = `${document.path}${document.filename}`;
+  const desiredTargetIds = new Set<number>();
+  for (const relatedPath of extractInternalWikiLinks(content, currentFullPath)) {
+    const relatedId = documentsByPath.get(relatedPath);
+    if (!relatedId || relatedId === document.id) continue;
+    desiredTargetIds.add(relatedId);
+  }
+
+  const existingPairs = await listRelatedArticlePairsForDocument(db, document.id);
+  const existingPairKeys = new Set(
+    existingPairs.map((pair) => relatedArticlePairKey(pair.document_id_a, pair.document_id_b)),
+  );
+  const desiredPairs = [...desiredTargetIds].map((relatedId) => canonicalRelatedArticlePair(document.id, relatedId));
+  const desiredPairKeys = new Set(
+    desiredPairs.map(([left, right]) => relatedArticlePairKey(left, right)),
+  );
+
+  const statements: Array<{ sql: string; values?: unknown[] }> = [];
+
+  for (const pair of existingPairs) {
+    if (desiredPairKeys.has(relatedArticlePairKey(pair.document_id_a, pair.document_id_b))) {
+      continue;
+    }
+    statements.push({
+      sql: "DELETE FROM document_related_articles WHERE document_id_a = ? AND document_id_b = ?",
+      values: [pair.document_id_a, pair.document_id_b],
+    });
+  }
+
+  for (const [left, right] of desiredPairs) {
+    if (existingPairKeys.has(relatedArticlePairKey(left, right))) {
+      continue;
+    }
+    statements.push({
+      sql: "INSERT INTO document_related_articles (document_id_a, document_id_b) VALUES (?, ?)",
+      values: [left, right],
+    });
+  }
+
+  await batchRun(db, statements);
+
+  const invalidationTargets = new Set<number>([document.id]);
+  for (const pair of existingPairs) {
+    invalidationTargets.add(pair.document_id_a);
+    invalidationTargets.add(pair.document_id_b);
+  }
+  for (const targetId of desiredTargetIds) {
+    invalidationTargets.add(targetId);
+  }
+
+  return [...invalidationTargets];
+}
+
 async function listKnowledgeBasesRaw() {
   const db = await getDb();
   const rows = await all<KnowledgeBaseRow>(
@@ -1101,6 +1289,41 @@ async function listDocumentSummariesRaw(knowledgeBaseId: string) {
       AND archived = 0
     ORDER BY path, sort_order, filename`,
     [kbId],
+  );
+  return rows.map(toDocumentSummary);
+}
+
+async function listRelatedDocumentSummariesRaw(documentId: string) {
+  const db = await getDb();
+  const docId = ensureId(documentId);
+  await getDocumentRow(db, docId);
+  const rows = await all<DocumentSummaryRow>(
+    db,
+    `WITH related_ids AS (
+      SELECT document_id_b AS id
+      FROM document_related_articles
+      WHERE document_id_a = ?
+      UNION
+      SELECT document_id_a AS id
+      FROM document_related_articles
+      WHERE document_id_b = ?
+    )
+    SELECT
+      d.id,
+      d.knowledge_base_id,
+      d.filename,
+      d.title,
+      d.path,
+      d.file_type,
+      d.sort_order,
+      d.archived,
+      d.updated_at
+    FROM related_ids r
+    JOIN documents d
+      ON d.id = r.id
+    WHERE d.archived = 0
+    ORDER BY d.updated_at DESC, d.path, d.sort_order, d.filename`,
+    [docId, docId],
   );
   return rows.map(toDocumentSummary);
 }
@@ -1272,6 +1495,19 @@ export async function listDocumentSummaries(knowledgeBaseId: string) {
   return read();
 }
 
+export async function listRelatedDocumentSummaries(documentId: string) {
+  const docId = ensureId(documentId);
+  const read = unstable_cache(
+    async () => listRelatedDocumentSummariesRaw(String(docId)),
+    [`document:${docId}:related`],
+    {
+      tags: [docContentTag(docId)],
+      revalidate: 60,
+    },
+  );
+  return read();
+}
+
 export async function createNote(
   knowledgeBaseId: string,
   input: { filename?: string; path?: string; content?: string; title?: string | null },
@@ -1314,10 +1550,22 @@ export async function createNote(
   }
 
   await replaceDocumentChunks(db, created.id, content, title, filename, requestedPath);
+  const relatedInvalidationIds = await syncRelatedArticlesForDocument(
+    db,
+    {
+      id: created.id,
+      knowledge_base_id: kbId,
+      filename,
+      path: requestedPath,
+      file_type: fileType,
+      archived: 0,
+    },
+    content,
+  );
   await touchKnowledgeBase(db, kbId);
   invalidateKnowledgeBases();
   invalidateKnowledgeBaseDocuments(kbId);
-  invalidateDocumentContent(created.id);
+  invalidateDocumentContents(relatedInvalidationIds);
 
   return toDocument(await getDocumentRow(db, created.id));
 }
@@ -1367,10 +1615,15 @@ export async function updateDocumentContent(id: string, content: string) {
     row.filename,
     row.path,
   );
+  const relatedInvalidationIds = await syncRelatedArticlesForDocument(
+    db,
+    row,
+    content,
+  );
   await touchKnowledgeBase(db, row.knowledge_base_id);
   invalidateKnowledgeBases();
   invalidateKnowledgeBaseDocuments(row.knowledge_base_id);
-  invalidateDocumentContent(documentId);
+  invalidateDocumentContents(relatedInvalidationIds);
 
   return {
     id: String(documentId),
@@ -1443,10 +1696,22 @@ export async function updateDocument(
     nextFilename,
     nextPath,
   );
+  const relatedInvalidationIds = await syncRelatedArticlesForDocument(
+    db,
+    {
+      id: documentId,
+      knowledge_base_id: current.knowledge_base_id,
+      filename: nextFilename,
+      path: nextPath,
+      file_type: current.file_type,
+      archived: current.archived,
+    },
+    current.content ?? "",
+  );
   await touchKnowledgeBase(db, current.knowledge_base_id);
   invalidateKnowledgeBases();
   invalidateKnowledgeBaseDocuments(current.knowledge_base_id);
-  invalidateDocumentContent(documentId);
+  invalidateDocumentContents(relatedInvalidationIds);
 
   return toDocument(await getDocumentRow(db, documentId));
 }
@@ -1455,6 +1720,7 @@ export async function deleteDocument(id: string) {
   const db = await getDb();
   const documentId = ensureId(id);
   const current = await getDocumentRow(db, documentId);
+  const relatedInvalidationIds = [documentId, ...(await clearRelatedArticlesForDocument(db, documentId))];
   await run(
     db,
     "UPDATE documents SET archived = 1, updated_at = ? WHERE id = ?",
@@ -1463,7 +1729,7 @@ export async function deleteDocument(id: string) {
   await touchKnowledgeBase(db, current.knowledge_base_id);
   invalidateKnowledgeBases();
   invalidateKnowledgeBaseDocuments(current.knowledge_base_id);
-  invalidateDocumentContent(documentId);
+  invalidateDocumentContents(relatedInvalidationIds);
 }
 
 export async function guideAction() {
@@ -1768,10 +2034,22 @@ export async function writeAction(input: {
       throw new ApiError(500, "Failed to create document");
     }
     await replaceDocumentChunks(db, created.id, content, cleanTitle, uniqueFilename, dirPath);
+    const relatedInvalidationIds = await syncRelatedArticlesForDocument(
+      db,
+      {
+        id: created.id,
+        knowledge_base_id: kb.id,
+        filename: uniqueFilename,
+        path: dirPath,
+        file_type: filenameToFileType(uniqueFilename),
+        archived: 0,
+      },
+      content,
+    );
     await touchKnowledgeBase(db, kb.id);
     invalidateKnowledgeBases();
     invalidateKnowledgeBaseDocuments(kb.id);
-    invalidateDocumentContent(created.id);
+    invalidateDocumentContents(relatedInvalidationIds);
 
     return {
       command: "create" as const,
@@ -1822,10 +2100,15 @@ export async function writeAction(input: {
     [nextContent, nextVersion, toIsoNow(), document.id],
   );
   await replaceDocumentChunks(db, document.id, nextContent, document.title, document.filename, document.path);
+  const relatedInvalidationIds = await syncRelatedArticlesForDocument(
+    db,
+    document,
+    nextContent,
+  );
   await touchKnowledgeBase(db, kb.id);
   invalidateKnowledgeBases();
   invalidateKnowledgeBaseDocuments(kb.id);
-  invalidateDocumentContent(document.id);
+  invalidateDocumentContents(relatedInvalidationIds);
 
   return {
     command: input.command,
