@@ -82,7 +82,7 @@ const APP_URL =
   process.env.APP_URL ||
   "http://localhost:3000";
 
-export const MCP_INSTRUCTIONS = `You are connected to an LLM Wiki workspace. Call \`guide\` first to discover available knowledge bases and learn the workflow rules before using other tools. Use \`search\` and \`read\` to inspect existing content before editing. If no existing knowledge base fits the user's request, call \`create_wiki\` before continuing. Treat raw sources under \`/\` as read-only source material and pages under \`/wiki/\` as the compiled wiki that you maintain with \`write\` and, only when explicitly needed, \`delete\`. Write articles in Japanese. Prefer a concise, encyclopedia-like style similar to Wikipedia, with clear subjects and natural sentence structure. Keep each sentence reasonably short. Articles must still be substantial enough to read as full articles; prioritize completeness and adequate depth over compactness. When a concept first appears in an article, briefly explain it in context. If a technical term or complex concept needs more than a brief explanation, create or expand a dedicated page for it and link to that page from the article. Add markdown hyperlinks in article text where helpful so readers can jump to related articles from the body text.`;
+export const MCP_INSTRUCTIONS = `You are connected to an LLM Wiki workspace. Call \`guide\` first to discover available knowledge bases and learn the workflow rules before using other tools. Use \`search\` and \`read\` to inspect existing content before editing. If no existing knowledge base fits the user's request, call \`create_wiki\` before continuing. Treat raw sources under \`/\` as read-only source material and pages under \`/wiki/\` as the compiled wiki that you maintain with \`write\` and, only when explicitly needed, \`delete\`. Write articles in Japanese. When creating a wiki page with \`write(command="create")\`, set \`title\` to a natural Japanese page title. Do not default page titles to English unless the user explicitly requests English. Prefer a concise, encyclopedia-like style similar to Wikipedia, with clear subjects and natural sentence structure. Keep each sentence reasonably short. Articles must still be substantial enough to read as full articles; prioritize completeness and adequate depth over compactness. When a concept first appears in an article, briefly explain it in context. If a technical term or complex concept needs more than a brief explanation, create or expand a dedicated page for it and link to that page from the article. Add markdown hyperlinks in article text where helpful so readers can jump to related articles from the body text.`;
 
 const GUIDE_TEXT = `# LLM Wiki - How It Works
 
@@ -168,6 +168,7 @@ Parent pages summarize; child pages go deep. The UI renders this as an expandabl
 - Start with a summary paragraph (no H1 - the title is rendered by the UI)
 - Use \`##\` for major sections, \`###\` for subsections
 - One idea per section. Bullet points for facts, prose for synthesis.
+- When creating a new wiki page with \`write(command="create")\`, use a natural Japanese page title in \`title\`. Do not use English slugs such as \`scaling-laws\` or \`attention-mechanisms\` as the page title unless the user explicitly requests that.
 
 ### Visual Elements - MANDATORY
 
@@ -232,8 +233,8 @@ Link between wiki pages using standard markdown links to other wiki paths.
 ### Ingest a New Source
 1. Read it: \`read(path="source.pdf", pages="1-10")\`
 2. Discuss key takeaways with the user
-3. Create or update **concept** pages under \`/wiki/concepts/\`
-4. Create or update **entity** pages under \`/wiki/entities/\`
+3. Create or update **concept** pages under \`/wiki/concepts/\` using natural Japanese page titles
+4. Create or update **entity** pages under \`/wiki/entities/\` using natural Japanese page titles
 5. Update \`/wiki/overview.md\` - source count, key findings, recent updates
 6. Append an entry to \`/wiki/log.md\`
 7. A single source typically touches 5-15 wiki pages - that's expected
