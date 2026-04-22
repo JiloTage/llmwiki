@@ -1,29 +1,58 @@
 import type { TocItem } from '@/lib/types'
 
+export type HeadingAnchor = {
+  id: string
+  text: string
+  level: 1 | 2 | 3 | 4
+}
+
+function stripInlineMarkdown(text: string): string {
+  return text
+    .replace(/\*\*/g, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .trim()
+}
+
 export function slugifyHeading(text: string): string {
   return text
+    .normalize('NFKC')
     .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
+    .replace(/[^\p{Letter}\p{Number}\s-]/gu, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
+    || 'section'
+}
+
+export function extractHeadingAnchors(md: string): HeadingAnchor[] {
+  const items: HeadingAnchor[] = []
+  const counts = new Map<string, number>()
+
+  for (const line of md.split('\n')) {
+    const heading = line.match(/^(#{1,4})\s+(.+)/)
+    if (!heading) continue
+
+    const level = heading[1].length as HeadingAnchor['level']
+    const text = stripInlineMarkdown(heading[2])
+    const baseId = slugifyHeading(text)
+    const nextCount = (counts.get(baseId) ?? 0) + 1
+    counts.set(baseId, nextCount)
+
+    items.push({
+      id: nextCount === 1 ? baseId : `${baseId}-${nextCount}`,
+      text,
+      level,
+    })
+  }
+
+  return items
 }
 
 export function extractTocFromMarkdown(md: string): TocItem[] {
-  const items: TocItem[] = []
-  const lines = md.split('\n')
-  for (const line of lines) {
-    const h2 = line.match(/^##\s+(.+)/)
-    const h3 = line.match(/^###\s+(.+)/)
-    if (h2) {
-      const text = h2[1].replace(/\*\*/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').trim()
-      items.push({ id: slugifyHeading(text), text, level: 2 })
-    } else if (h3) {
-      const text = h3[1].replace(/\*\*/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').trim()
-      items.push({ id: slugifyHeading(text), text, level: 3 })
-    }
-  }
-  return items
+  return extractHeadingAnchors(md)
+    .flatMap((item) => (item.level === 2 || item.level === 3
+      ? [{ id: item.id, text: item.text, level: item.level }]
+      : []))
 }
 
 export function stripLeadingH1(content: string, title: string): string {

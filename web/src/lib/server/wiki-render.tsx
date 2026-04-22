@@ -6,6 +6,7 @@ import type { Components } from 'react-markdown'
 import { resolveDocumentPath, toWikiRoute } from '@/lib/documents'
 import type { DocumentSummary, TocItem } from '@/lib/types'
 import {
+  extractHeadingAnchors,
   extractTocFromMarkdown,
   parseFootnoteSources,
   slugifyHeading,
@@ -57,23 +58,39 @@ export function renderWikiPage({
 }: RenderWikiPageInput): RenderedWikiPage {
   const processedContent = stripLeadingH1(content, title)
   const tocItems = extractTocFromMarkdown(processedContent)
+  const headingAnchors = extractHeadingAnchors(processedContent)
   const footnoteSources = parseFootnoteSources(processedContent)
+  let headingIndex = 0
+  const fallbackHeadingCounts = new Map<string, number>()
+
+  function nextHeadingId(text: string) {
+    const anchor = headingAnchors[headingIndex]
+    if (anchor) {
+      headingIndex += 1
+      return anchor.id
+    }
+
+    const baseId = slugifyHeading(text)
+    const nextCount = (fallbackHeadingCounts.get(baseId) ?? 0) + 1
+    fallbackHeadingCounts.set(baseId, nextCount)
+    return nextCount === 1 ? baseId : `${baseId}-${nextCount}`
+  }
 
   const components: Components = {
     h1({ children }) {
-      const id = slugifyHeading(childrenToText(children))
+      const id = nextHeadingId(childrenToText(children))
       return <h1 id={id} className="wiki-heading mt-8 mb-3 scroll-mt-20 text-[1.7rem] leading-tight first:mt-0">{children}</h1>
     },
     h2({ children }) {
-      const id = slugifyHeading(childrenToText(children))
+      const id = nextHeadingId(childrenToText(children))
       return <h2 id={id} className="wiki-heading mt-8 mb-2 border-b border-border pb-1 scroll-mt-20 text-[1.45rem]">{children}</h2>
     },
     h3({ children }) {
-      const id = slugifyHeading(childrenToText(children))
+      const id = nextHeadingId(childrenToText(children))
       return <h3 id={id} className="wiki-heading mt-6 mb-1.5 scroll-mt-20 text-[1.15rem]">{children}</h3>
     },
     h4({ children }) {
-      const id = slugifyHeading(childrenToText(children))
+      const id = nextHeadingId(childrenToText(children))
       return <h4 id={id} className="mt-5 mb-1 scroll-mt-20 text-base font-semibold">{children}</h4>
     },
     p({ children }) {
@@ -123,8 +140,9 @@ export function renderWikiPage({
       }
 
       if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('mailto:')) {
-        const nextPath = resolveDocumentPath(currentPath, href)
-        const nextHref = toWikiRoute(kbSlug, nextPath)
+        const [pathHref, hashHref] = href.split('#', 2)
+        const nextPath = resolveDocumentPath(currentPath, pathHref || currentPath)
+        const nextHref = `${toWikiRoute(kbSlug, nextPath)}${hashHref ? `#${hashHref}` : ''}`
         return (
           <a href={nextHref} data-wiki-link="true" className="text-accent-blue hover:underline">
             {children}

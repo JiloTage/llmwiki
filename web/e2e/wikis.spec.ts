@@ -404,3 +404,54 @@ test('follows encoded internal wiki links for pages with Japanese filenames', as
   await expect(page).toHaveURL(new RegExp(`/wikis/${slug}/wiki/concepts/`))
   await expect(page.getByText('/wiki/concepts/', { exact: false }).first()).toBeVisible()
 })
+
+test('preserves internal wiki fragments for Japanese headings', async ({ page, request }) => {
+  const name = uniqueName('Japanese Anchor Wiki')
+  const slug = slugify(name)
+  await createWikiFromUi(page, name)
+  await expect(page).toHaveURL(new RegExp(`/wikis/${slug}/wiki/overview\\.md$`))
+
+  const knowledgeBase = await waitForKnowledgeBase(request, slug)
+  const documents = await listDocuments(request, knowledgeBase.id)
+  const overview = documents.find((doc) => doc.path === '/wiki/' && doc.filename === 'overview.md')
+  expect(overview).toBeTruthy()
+
+  const filename = '\u30da\u30fc\u30b8\u69cb\u6210\u30ac\u30a4\u30c9.md'
+  const title = '\u30da\u30fc\u30b8\u69cb\u6210\u30ac\u30a4\u30c9'
+  const sectionTitle = '\u95a2\u9023\u30da\u30fc\u30b8'
+
+  await createDocument(request, knowledgeBase.id, {
+    filename,
+    title,
+    path: '/wiki/concepts/',
+    content: `# ${title}
+
+## ${sectionTitle}
+
+\u65e5\u672c\u8a9e\u898b\u51fa\u3057\u3078\u306e\u9077\u79fb\u78ba\u8a8d\u30da\u30fc\u30b8\u3067\u3059\u3002
+`,
+  })
+
+  const updateResponse = await request.put(`/api/v1/documents/${overview!.id}/content`, {
+    headers: {
+      ...AUTH_HEADERS,
+      'Content-Type': 'application/json',
+    },
+    data: {
+      content: `# Overview
+
+[${sectionTitle}](/wiki/concepts/${encodeURIComponent(filename)}#${sectionTitle})
+`,
+    },
+  })
+  expect(updateResponse.ok()).toBeTruthy()
+
+  await page.goto(`/wikis/${slug}/wiki/overview.md`)
+  await page.getByRole('link', { name: sectionTitle }).click()
+
+  await expect(page).toHaveURL(new RegExp(`/wikis/${slug}/wiki/concepts/`))
+  await expect
+    .poll(async () => page.evaluate(() => decodeURIComponent(window.location.hash.slice(1))))
+    .toBe(sectionTitle)
+  await expect(page.getByRole('heading', { name: sectionTitle, level: 2 })).toHaveAttribute('id', sectionTitle)
+})

@@ -1,11 +1,23 @@
 import type { DocumentListItem, DocumentSummary } from '@/lib/types'
 
+function safeDecodeUriComponent(value: string): string {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
 export function buildDocumentPath(path: string, filename: string): string {
   return `${path}${filename}`.replace(/\/+/g, '/')
 }
 
 export function toWikiRoute(slug: string, fullPath: string): string {
-  const segments = fullPath.split('/').filter(Boolean).map(encodeURIComponent).join('/')
+  const segments = fullPath
+    .split('/')
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(safeDecodeUriComponent(segment)))
+    .join('/')
   return segments ? `/wikis/${slug}/${segments}` : `/wikis/${slug}`
 }
 
