@@ -372,6 +372,12 @@ function isProtectedWikiPath(path: string, filename: string) {
   return PROTECTED_FILES.has(`${path}${filename}`);
 }
 
+function shouldMaintainWikiAutolinks(path: string, filename: string, fileType: string) {
+  return path.startsWith("/wiki/") &&
+    fileType === "md" &&
+    `${path}${filename}` !== "/wiki/log.md";
+}
+
 function isRelatableWikiDocument(path: string, filename: string, fileType: string) {
   return path.startsWith("/wiki/") &&
     (fileType === "md" || fileType === "txt") &&
@@ -1207,6 +1213,100 @@ async function syncRelatedArticlesForDocument(
   return [...invalidationTargets];
 }
 
+async function persistDocumentContent(
+  db: D1DatabaseLike,
+  row: Pick<DocumentRow, "id" | "knowledge_base_id" | "filename" | "path" | "file_type" | "archived" | "title" | "version">,
+  content: string,
+) {
+  const nextVersion = Number(row.version) + 1;
+  await run(
+    db,
+    "UPDATE documents SET content = ?, version = ?, updated_at = ? WHERE id = ?",
+    [content, nextVersion, toIsoNow(), row.id],
+  );
+  await replaceDocumentChunks(
+    db,
+    row.id,
+    content,
+    row.title,
+    row.filename,
+    row.path,
+  );
+  const relatedInvalidationIds = await syncRelatedArticlesForDocument(
+    db,
+    row,
+    content,
+  );
+
+  return {
+    version: nextVersion,
+    relatedInvalidationIds,
+  };
+}
+
+async function maintainKnowledgeBaseAutolinks(
+  db: D1DatabaseLike,
+  knowledgeBaseId: number,
+) {
+  const rows = await all<DocumentRow>(
+    db,
+    `SELECT
+      id,
+      knowledge_base_id,
+      filename,
+      title,
+      path,
+      file_type,
+      content,
+      tags_json,
+      metadata_json,
+      date,
+      version,
+      sort_order,
+      archived,
+      created_at,
+      updated_at
+    FROM documents
+    WHERE knowledge_base_id = ?
+      AND archived = 0
+    ORDER BY path, sort_order, filename`,
+    [knowledgeBaseId],
+  );
+
+  const documents = rows.map(toDocument);
+  const wikiRows = rows.filter((row) =>
+    shouldMaintainWikiAutolinks(row.path, row.filename, row.file_type) &&
+    !row.archived
+  );
+  const candidates = buildAutolinkCandidates(documents);
+  const updatedPaths: string[] = [];
+  const invalidationIds = new Set<number>();
+  let linksAdded = 0;
+
+  for (const row of wikiRows) {
+    const currentPath = `${row.path}${row.filename}`;
+    const currentContent = row.content ?? "";
+    const { content, linksAdded: added } = autolinkMarkdown(currentContent, currentPath, candidates);
+    if (!added || content === currentContent) {
+      continue;
+    }
+
+    const { relatedInvalidationIds } = await persistDocumentContent(db, row, content);
+    updatedPaths.push(currentPath);
+    linksAdded += added;
+    invalidationIds.add(row.id);
+    for (const documentId of relatedInvalidationIds) {
+      invalidationIds.add(documentId);
+    }
+  }
+
+  return {
+    updatedPaths,
+    linksAdded,
+    invalidationIds: [...invalidationIds],
+  };
+}
+
 async function listKnowledgeBasesRaw() {
   const db = await getDb();
   const rows = await all<KnowledgeBaseRow>(
@@ -1550,22 +1650,30 @@ export async function createNote(
   }
 
   await replaceDocumentChunks(db, created.id, content, title, filename, requestedPath);
-  const relatedInvalidationIds = await syncRelatedArticlesForDocument(
-    db,
-    {
-      id: created.id,
-      knowledge_base_id: kbId,
-      filename,
-      path: requestedPath,
-      file_type: fileType,
-      archived: 0,
-    },
-    content,
+  const invalidationIds = new Set(
+    await syncRelatedArticlesForDocument(
+      db,
+      {
+        id: created.id,
+        knowledge_base_id: kbId,
+        filename,
+        path: requestedPath,
+        file_type: fileType,
+        archived: 0,
+      },
+      content,
+    ),
   );
+  if (shouldMaintainWikiAutolinks(requestedPath, filename, fileType)) {
+    const autolinkResult = await maintainKnowledgeBaseAutolinks(db, kbId);
+    for (const documentId of autolinkResult.invalidationIds) {
+      invalidationIds.add(documentId);
+    }
+  }
   await touchKnowledgeBase(db, kbId);
   invalidateKnowledgeBases();
   invalidateKnowledgeBaseDocuments(kbId);
-  invalidateDocumentContents(relatedInvalidationIds);
+  invalidateDocumentContents(invalidationIds);
 
   return toDocument(await getDocumentRow(db, created.id));
 }
@@ -1600,30 +1708,22 @@ export async function updateDocumentContent(id: string, content: string) {
   const db = await getDb();
   const documentId = ensureId(id);
   const row = await getDocumentRow(db, documentId);
-  const nextVersion = Number(row.version) + 1;
-
-  await run(
-    db,
-    "UPDATE documents SET content = ?, version = ?, updated_at = ? WHERE id = ?",
-    [content, nextVersion, toIsoNow(), documentId],
-  );
-  await replaceDocumentChunks(
-    db,
-    documentId,
-    content,
-    row.title,
-    row.filename,
-    row.path,
-  );
-  const relatedInvalidationIds = await syncRelatedArticlesForDocument(
+  const { version: nextVersion, relatedInvalidationIds } = await persistDocumentContent(
     db,
     row,
     content,
   );
+  const invalidationIds = new Set(relatedInvalidationIds);
+  if (shouldMaintainWikiAutolinks(row.path, row.filename, row.file_type)) {
+    const autolinkResult = await maintainKnowledgeBaseAutolinks(db, row.knowledge_base_id);
+    for (const relatedId of autolinkResult.invalidationIds) {
+      invalidationIds.add(relatedId);
+    }
+  }
   await touchKnowledgeBase(db, row.knowledge_base_id);
   invalidateKnowledgeBases();
   invalidateKnowledgeBaseDocuments(row.knowledge_base_id);
-  invalidateDocumentContents(relatedInvalidationIds);
+  invalidateDocumentContents(invalidationIds);
 
   return {
     id: String(documentId),
@@ -1708,10 +1808,20 @@ export async function updateDocument(
     },
     current.content ?? "",
   );
+  const invalidationIds = new Set(relatedInvalidationIds);
+  if (
+    shouldMaintainWikiAutolinks(current.path, current.filename, current.file_type) ||
+    shouldMaintainWikiAutolinks(nextPath, nextFilename, current.file_type)
+  ) {
+    const autolinkResult = await maintainKnowledgeBaseAutolinks(db, current.knowledge_base_id);
+    for (const relatedId of autolinkResult.invalidationIds) {
+      invalidationIds.add(relatedId);
+    }
+  }
   await touchKnowledgeBase(db, current.knowledge_base_id);
   invalidateKnowledgeBases();
   invalidateKnowledgeBaseDocuments(current.knowledge_base_id);
-  invalidateDocumentContents(relatedInvalidationIds);
+  invalidateDocumentContents(invalidationIds);
 
   return toDocument(await getDocumentRow(db, documentId));
 }
@@ -2034,22 +2144,30 @@ export async function writeAction(input: {
       throw new ApiError(500, "Failed to create document");
     }
     await replaceDocumentChunks(db, created.id, content, cleanTitle, uniqueFilename, dirPath);
-    const relatedInvalidationIds = await syncRelatedArticlesForDocument(
-      db,
-      {
-        id: created.id,
-        knowledge_base_id: kb.id,
-        filename: uniqueFilename,
-        path: dirPath,
-        file_type: filenameToFileType(uniqueFilename),
-        archived: 0,
-      },
-      content,
+    const invalidationIds = new Set(
+      await syncRelatedArticlesForDocument(
+        db,
+        {
+          id: created.id,
+          knowledge_base_id: kb.id,
+          filename: uniqueFilename,
+          path: dirPath,
+          file_type: filenameToFileType(uniqueFilename),
+          archived: 0,
+        },
+        content,
+      ),
     );
+    if (shouldMaintainWikiAutolinks(dirPath, uniqueFilename, filenameToFileType(uniqueFilename))) {
+      const autolinkResult = await maintainKnowledgeBaseAutolinks(db, kb.id);
+      for (const documentId of autolinkResult.invalidationIds) {
+        invalidationIds.add(documentId);
+      }
+    }
     await touchKnowledgeBase(db, kb.id);
     invalidateKnowledgeBases();
     invalidateKnowledgeBaseDocuments(kb.id);
-    invalidateDocumentContents(relatedInvalidationIds);
+    invalidateDocumentContents(invalidationIds);
 
     return {
       command: "create" as const,
@@ -2093,22 +2211,22 @@ export async function writeAction(input: {
     nextContent = `${currentContent}${currentContent && input.content ? "\n\n" : ""}${input.content ?? ""}`;
   }
 
-  const nextVersion = Number(document.version) + 1;
-  await run(
-    db,
-    "UPDATE documents SET content = ?, version = ?, updated_at = ? WHERE id = ?",
-    [nextContent, nextVersion, toIsoNow(), document.id],
-  );
-  await replaceDocumentChunks(db, document.id, nextContent, document.title, document.filename, document.path);
-  const relatedInvalidationIds = await syncRelatedArticlesForDocument(
+  const { version: nextVersion, relatedInvalidationIds } = await persistDocumentContent(
     db,
     document,
     nextContent,
   );
+  const invalidationIds = new Set(relatedInvalidationIds);
+  if (shouldMaintainWikiAutolinks(document.path, document.filename, document.file_type)) {
+    const autolinkResult = await maintainKnowledgeBaseAutolinks(db, kb.id);
+    for (const documentId of autolinkResult.invalidationIds) {
+      invalidationIds.add(documentId);
+    }
+  }
   await touchKnowledgeBase(db, kb.id);
   invalidateKnowledgeBases();
   invalidateKnowledgeBaseDocuments(kb.id);
-  invalidateDocumentContents(relatedInvalidationIds);
+  invalidateDocumentContents(invalidationIds);
 
   return {
     command: input.command,
@@ -2131,59 +2249,23 @@ export async function autolinkAction(input: {
 }) {
   const db = await getDb();
   const kb = await getKnowledgeBaseRowBySlug(db, input.knowledge_base);
-  const documents = (await all<DocumentRow>(
-    db,
-    `SELECT
-      id,
-      knowledge_base_id,
-      filename,
-      title,
-      path,
-      file_type,
-      content,
-      tags_json,
-      metadata_json,
-      date,
-      version,
-      sort_order,
-      archived,
-      created_at,
-      updated_at
-    FROM documents
-    WHERE knowledge_base_id = ?
-      AND archived = 0
-    ORDER BY path, sort_order, filename`,
-    [kb.id],
-  )).map(toDocument);
-  const wikiDocs = documents.filter((doc) =>
-    doc.path.startsWith("/wiki/") &&
-    doc.file_type === "md" &&
-    !doc.archived &&
-    `${doc.path}${doc.filename}` !== "/wiki/log.md"
-  );
-  const candidates = buildAutolinkCandidates(wikiDocs);
-
-  const updatedPaths: string[] = [];
-  let linksAdded = 0;
-
-  for (const doc of wikiDocs) {
-    const currentPath = `${doc.path}${doc.filename}`;
-    const { content, linksAdded: added } = autolinkMarkdown(doc.content ?? "", currentPath, candidates);
-    if (!added || content === (doc.content ?? "")) {
-      continue;
-    }
-
-    await updateDocumentContent(doc.id, content);
-    updatedPaths.push(currentPath);
-    linksAdded += added;
-  }
+  const { updatedPaths, linksAdded, invalidationIds } = await maintainKnowledgeBaseAutolinks(db, kb.id);
 
   const logEntry = buildAutolinkLogEntry(updatedPaths, linksAdded);
   const logDocument = await getLiveDocumentRow(db, kb.id, "/wiki/log.md");
+  const allInvalidationIds = new Set(invalidationIds);
   if (logDocument) {
     const nextLogContent = `${logDocument.content ?? ""}${(logDocument.content ?? "").trim() ? "\n\n" : ""}${logEntry}`;
-    await updateDocumentContent(String(logDocument.id), nextLogContent);
+    const { relatedInvalidationIds } = await persistDocumentContent(db, logDocument, nextLogContent);
+    allInvalidationIds.add(logDocument.id);
+    for (const documentId of relatedInvalidationIds) {
+      allInvalidationIds.add(documentId);
+    }
   }
+  await touchKnowledgeBase(db, kb.id);
+  invalidateKnowledgeBases();
+  invalidateKnowledgeBaseDocuments(kb.id);
+  invalidateDocumentContents(allInvalidationIds);
 
   return {
     knowledge_base: kb.slug,

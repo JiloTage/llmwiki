@@ -224,7 +224,7 @@ test('serves MCP initialize and tools list', async ({ request }) => {
   ])
 })
 
-test('autolink adds missing internal links across existing wiki pages', async ({ request }) => {
+test('autolink is idempotent when wiki links are already maintained', async ({ request }) => {
   const name = uniqueName('Autolink Wiki')
   const knowledgeBase = await createKnowledgeBase(request, name)
 
@@ -247,9 +247,9 @@ test('autolink adds missing internal links across existing wiki pages', async ({
     links_added: number
     updated_paths: string[]
   }
-  expect(autolink.updated_count).toBeGreaterThan(0)
-  expect(autolink.links_added).toBeGreaterThan(0)
-  expect(autolink.updated_paths).toContain('/wiki/entities/Transformers.md')
+  expect(autolink.updated_count).toBe(0)
+  expect(autolink.links_added).toBe(0)
+  expect(autolink.updated_paths).toEqual([])
 
   const read = await readAction(request, {
     knowledge_base: knowledgeBase.slug,
@@ -259,6 +259,42 @@ test('autolink adds missing internal links across existing wiki pages', async ({
   }
 
   expect(read.documents[0].content).toContain('[Large Language Models](/wiki/concepts/Large%20Language%20Models.md)')
+})
+
+test('automatically keeps wiki links up to date when new pages are created', async ({ request }) => {
+  const name = uniqueName('Auto Maintain Wiki')
+  const knowledgeBase = await createKnowledgeBase(request, name)
+
+  await createDocument(request, knowledgeBase.id, {
+    filename: 'Large Language Models.md',
+    title: 'Large Language Models',
+    path: '/wiki/concepts/',
+    content: '# Large Language Models\n\nTransformers are important to this topic.\n',
+  })
+
+  await createDocument(request, knowledgeBase.id, {
+    filename: 'Transformers.md',
+    title: 'Transformers',
+    path: '/wiki/entities/',
+    content: '# Transformers\n\nLarge Language Models often rely on this architecture.\n',
+  })
+
+  const conceptRead = await readAction(request, {
+    knowledge_base: knowledgeBase.slug,
+    path: '/wiki/concepts/Large Language Models.md',
+  }) as {
+    documents: Array<{ content: string }>
+  }
+
+  const entityRead = await readAction(request, {
+    knowledge_base: knowledgeBase.slug,
+    path: '/wiki/entities/Transformers.md',
+  }) as {
+    documents: Array<{ content: string }>
+  }
+
+  expect(conceptRead.documents[0].content).toContain('[Transformers](/wiki/entities/Transformers.md)')
+  expect(entityRead.documents[0].content).toContain('[Large Language Models](/wiki/concepts/Large%20Language%20Models.md)')
 })
 
 test('renders reciprocal related articles for linked wiki pages', async ({ page, request }) => {
