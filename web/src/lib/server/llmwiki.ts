@@ -82,7 +82,7 @@ const APP_URL =
   process.env.APP_URL ||
   "http://localhost:3000";
 
-export const MCP_INSTRUCTIONS = `You are connected to an LLM Wiki workspace. Call \`guide\` first to discover available knowledge bases and learn the workflow rules before using other tools. Use \`search\` and \`read\` to inspect existing content before editing. If no existing knowledge base fits the user's request, call \`create_wiki\` before continuing. Treat raw sources under \`/\` as read-only source material and pages under \`/wiki/\` as the compiled wiki that you maintain with \`write\` and, only when explicitly needed, \`delete\`. Write articles in Japanese. When creating a wiki page with \`write(command="create")\`, set \`title\` to a natural Japanese page title. Do not default page titles to English unless the user explicitly requests English. Prefer a concise, encyclopedia-like style similar to Wikipedia, with clear subjects and natural sentence structure. Keep each sentence reasonably short. Articles must still be substantial enough to read as full articles; prioritize completeness and adequate depth over compactness. When a concept first appears in an article, briefly explain it in context. If a technical term or complex concept needs more than a brief explanation, create or expand a dedicated page for it and link to that page from the article. Add markdown hyperlinks in article text where helpful so readers can jump to related articles from the body text.`;
+export const MCP_INSTRUCTIONS = `You are connected to an LLM Wiki workspace. Call \`guide\` first to discover available knowledge bases and learn the workflow rules before using other tools. Use \`search\` and \`read\` to inspect existing content before editing. If no existing knowledge base fits the user's request, call \`create_wiki\` before continuing. Treat raw sources under \`/\` as read-only source material and pages under \`/wiki/\` as the compiled wiki that you maintain with \`write\` and, only when explicitly needed, \`delete\`. Write articles in Japanese. When creating a wiki page with \`write(command="create")\`, set \`title\` to a natural Japanese page title. Do not default page titles to English unless the user explicitly requests English. Prefer a concise, encyclopedia-like style similar to Wikipedia, with clear subjects and natural sentence structure. Keep each sentence reasonably short. Articles must still be substantial enough to read as full articles; prioritize completeness and adequate depth over compactness. When a concept first appears in an article, briefly explain it in context. If a technical term or complex concept needs more than a brief explanation, create or expand a dedicated page for it. Do not manually guess or create internal wiki links; write natural article text using canonical terms and page titles where relevant, and the system will maintain internal Markdown links after wiki page create/update.`;
 
 const GUIDE_TEXT = `# LLM Wiki - How It Works
 
@@ -115,7 +115,7 @@ Pages for theoretical frameworks, methodologies, principles, themes - anything c
 - \`/wiki/concepts/attention-mechanisms.md\`
 - \`/wiki/concepts/self-supervised-learning.md\`
 
-Each concept page should: define the concept, explain why it matters in context, cite sources, and cross-reference related concepts and entities.
+Each concept page should: define the concept, explain why it matters in context, cite sources, and naturally mention related concepts and entities when relevant.
 
 ### Entities (\`/wiki/entities/\`) - CONCRETE THINGS
 Pages for people, organizations, products, technologies, papers, datasets - anything you can point to.
@@ -123,7 +123,7 @@ Pages for people, organizations, products, technologies, papers, datasets - anyt
 - \`/wiki/entities/openai.md\`
 - \`/wiki/entities/attention-is-all-you-need.md\`
 
-Each entity page should: describe what it is, note key facts, cite sources, and cross-reference related concepts and entities.
+Each entity page should: describe what it is, note key facts, cite sources, and naturally mention related concepts and entities when relevant.
 
 ### Log (\`/wiki/log.md\`) - CHRONOLOGICAL RECORD
 Always exists. Append-only. Records every ingest, major edit, and lint pass. Never delete entries.
@@ -142,7 +142,7 @@ Format - each entry starts with a parseable header:
 
 ## [YYYY-MM-DD] lint | Health Check
 - Fixed contradiction between X and Y
-- Added missing cross-reference in Z
+- Added missing context for Z
 \`\`\`
 
 ### Additional Pages
@@ -211,16 +211,13 @@ Rules:
 - One citation per claim - don't batch unrelated claims
 - Citations render as hoverable popover badges in the UI
 
-### Cross-References
-Link between wiki pages using standard markdown links to other wiki paths.
-
-### Internal Links and First Mentions - REQUIRED
+### Related Terms and First Mentions
 
 - When an important concept, entity, method, technology, organization, person, paper, or dataset first appears in an article, briefly explain it in context.
-- If that topic already has a dedicated wiki page, link the first natural mention in the article body using a standard markdown link.
-- If a technical term or complex concept needs more than a short in-context explanation, create or expand a dedicated page for it and link to that page from the article body.
-- Prefer links embedded in natural prose. Do not push important links into a trailing dump of related pages.
-- Use \`autolink\` when you want to sweep existing wiki pages and add missing internal links to already-existing pages.
+- If a technical term or complex concept needs more than a short in-context explanation, create or expand a dedicated page for it.
+- Do not manually guess or create internal wiki links. Hand-written links are easy to make stale or inaccurate.
+- Write natural article text using canonical terms and page titles where relevant. After wiki page create/update, the system automatically maintains internal Markdown links to already-existing pages.
+- Use \`autolink\` only when you explicitly need a manual resync/sweep of existing wiki pages.
 
 ## Core Workflows
 
@@ -247,10 +244,10 @@ Link between wiki pages using standard markdown links to other wiki paths.
 5. Append a query entry to \`/wiki/log.md\`
 
 ### Maintain the Wiki (Lint)
-Check for: contradictions, orphan pages, missing cross-references, stale claims, concepts mentioned but lacking their own page. Append a lint entry to \`/wiki/log.md\`.
+Check for: contradictions, orphan pages, stale claims, concepts mentioned but lacking their own page, and terms that should be written consistently so autolink can maintain them. Append a lint entry to \`/wiki/log.md\`.
 
 ### Sweep Internal Links
-Run \`autolink(knowledge_base="...")\` to scan existing wiki pages and add missing internal links where a page already exists for the referenced topic.
+Internal links are maintained automatically after wiki page create/update. Run \`autolink(knowledge_base="...")\` only when you explicitly need to resync existing wiki pages.
 
 ## Available Knowledge Bases
 `;

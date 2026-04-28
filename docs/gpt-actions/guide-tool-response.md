@@ -8,7 +8,7 @@ The GPT Actions endpoints do not require authentication.
 
 1. **Raw Sources** (path: `/`) - uploaded documents (PDFs, notes, images, spreadsheets). Source of truth. Read-only.
 2. **Compiled Wiki** (path: `/wiki/`) - markdown pages YOU create and maintain. You own this layer.
-3. **Tools** - `guide`, `create_wiki`, `search`, `read`, `write`, `delete` - your interface to both layers.
+3. **Tools** - `guide`, `create_wiki`, `search`, `read`, `write`, `autolink`, `delete` - your interface to both layers.
 
 If the user needs a new wiki and no suitable knowledge base exists yet, create it first with `create_wiki`.
 
@@ -31,7 +31,7 @@ Pages for theoretical frameworks, methodologies, principles, themes - anything c
 - `/wiki/concepts/attention-mechanisms.md`
 - `/wiki/concepts/self-supervised-learning.md`
 
-Each concept page should: define the concept, explain why it matters in context, cite sources, and cross-reference related concepts and entities.
+Each concept page should: define the concept, explain why it matters in context, cite sources, and naturally mention related concepts and entities when relevant.
 
 ### Entities (`/wiki/entities/`) - CONCRETE THINGS
 Pages for people, organizations, products, technologies, papers, datasets - anything you can point to.
@@ -39,7 +39,7 @@ Pages for people, organizations, products, technologies, papers, datasets - anyt
 - `/wiki/entities/openai.md`
 - `/wiki/entities/attention-is-all-you-need.md`
 
-Each entity page should: describe what it is, note key facts, cite sources, and cross-reference related concepts and entities.
+Each entity page should: describe what it is, note key facts, cite sources, and naturally mention related concepts and entities when relevant.
 
 ### Log (`/wiki/log.md`) - CHRONOLOGICAL RECORD
 Always exists. Append-only. Records every ingest, major edit, and lint pass. Never delete entries.
@@ -58,7 +58,7 @@ Format - each entry starts with a parseable header:
 
 ## [YYYY-MM-DD] lint | Health Check
 - Fixed contradiction between X and Y
-- Added missing cross-reference in Z
+- Added missing context for Z
 ```
 
 ### Additional Pages
@@ -126,8 +126,13 @@ Rules:
 - One citation per claim - don't batch unrelated claims
 - Citations render as hoverable popover badges in the UI
 
-### Cross-References
-Link between wiki pages using standard markdown links to other wiki paths.
+### Related Terms and First Mentions
+
+- When an important concept, entity, method, technology, organization, person, paper, or dataset first appears in an article, briefly explain it in context.
+- If a technical term or complex concept needs more than a short in-context explanation, create or expand a dedicated page for it.
+- Do not manually guess or create internal wiki links. Hand-written links are easy to make stale or inaccurate.
+- Write natural article text using canonical terms and page titles where relevant. After wiki page create/update, the system automatically maintains internal Markdown links to already-existing pages.
+- Use `autolink` only when you explicitly need a manual resync/sweep of existing wiki pages.
 
 ## Core Workflows
 
@@ -154,6 +159,9 @@ Link between wiki pages using standard markdown links to other wiki paths.
 5. Append a query entry to `/wiki/log.md`
 
 ### Maintain the Wiki (Lint)
-Check for: contradictions, orphan pages, missing cross-references, stale claims, concepts mentioned but lacking their own page. Append a lint entry to `/wiki/log.md`.
+Check for: contradictions, orphan pages, stale claims, concepts mentioned but lacking their own page, and terms that should be written consistently so autolink can maintain them. Append a lint entry to `/wiki/log.md`.
+
+### Sweep Internal Links
+Internal links are maintained automatically after wiki page create/update. Run `autolink(knowledge_base="...")` only when you explicitly need to resync existing wiki pages.
 
 ## Available Knowledge Bases

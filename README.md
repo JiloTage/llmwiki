@@ -27,10 +27,10 @@
 ## 公開 surface
 
 - GPT Actions:
-  `POST /api/v1/actions/guide`, `create-wiki`, `search`, `read`, `write`, `delete`
+  `POST /api/v1/actions/guide`, `create-wiki`, `search`, `read`, `write`, `autolink`, `delete`
 - MCP:
   `POST /mcp` で `initialize`, `ping`, `tools/list`, `tools/call` を受けます。
-  `guide`, `create_wiki`, `search`, `read`, `write`, `delete` を MCP tool として公開します。
+  `guide`, `create_wiki`, `search`, `read`, `write`, `autolink`, `delete` を MCP tool として公開します。
 
 GPT Actions と MCP はどちらも同じ server 実装を呼び、実体は `web/src/lib/server/llmwiki.ts` に集約されています。
 

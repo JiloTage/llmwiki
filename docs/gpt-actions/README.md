@@ -20,6 +20,7 @@
    - `POST /api/v1/actions/search`
    - `POST /api/v1/actions/read`
    - `POST /api/v1/actions/write`
+   - `POST /api/v1/actions/autolink`
    - `POST /api/v1/actions/delete`
 4. GPT には最初に `guide` を呼ぶよう指示します。
    これで knowledge base 一覧と wiki 運用ルールを最初に取得できます。
